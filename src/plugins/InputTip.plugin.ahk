@@ -20,3 +20,12 @@
     - Gitee: https://gitee.com/abgox/InputTip#自定义功能
 
 */
+
+
+#Include KeyboardHookLib_v2.ahk
+; 初始化键盘钩子功能
+InitKeyboardHook()
+; Sleep, 1000  ; 等待1000毫秒确保初始化完成
+; 启动窗口监控
+StartWindowMonitoring()  ; 启动窗口监控
+
