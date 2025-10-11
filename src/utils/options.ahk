@@ -2,7 +2,7 @@
 
 #Requires AutoHotkey v2.0
 ;@AHK2Exe-SetLanguage 0x0804
-;@Ahk2Exe-SetMainIcon img/app.ico
+;@Ahk2Exe-SetMainIcon InputTipIcon/default/app.ico
 ;@Ahk2Exe-SetCopyright Copyright (c) 2023-present abgox
 #SingleInstance Force
 #Warn All, Off
@@ -37,17 +37,17 @@ WM_MOUSEWHEEL_Handler(wParam, lParam, msg, hwnd) {
 
 OnMessage(0x20E, (*) => 0) ; 0x20E = WM_MOUSEHWHEEL
 
-;@AHK2Exe-SetVersion 2025.09.21
+;@AHK2Exe-SetVersion 2025.10.09
 
 if (A_IsCompiled) {
     ; exe 版本
-    currentVersion := "2025.09.21"
+    currentVersion := "2025.10.09"
 
     versionType := "exe"
     versionKey := "version"
 } else {
     ; zip 版本
-    currentVersion := "2025.09.21"
+    currentVersion := "2025.10.09"
 
     versionType := "zip"
     versionKey := "version-zip"

@@ -2,6 +2,33 @@
 
 # 版本更新日志
 
+## 2025.10.09
+
+- 修复了当 `偏移量参考原点` 为 `输入光标下方` 时，`特殊偏移量` 失效的问题
+
+- 优化 `特殊偏移量` 设置的实时预览
+
+  - 对于 JAB 程序的 `特殊偏移量` 设置，需要进行保存操作后才会生效
+  - 保存操作：点击 `完成添加`、`完成编辑` 或其他相关按钮
+
+- 其他的修复和优化
+
+## 2025.10.01
+
+- 将图标文件移动到 InputTipIcon 目录中
+
+- 调整图片符号的默认样式 ([#234](https://github.com/abgox/InputTip/issues/234))
+- 优化默认的图片符号和鼠标样式目录的命名 ([#235](https://github.com/abgox/InputTip/issues/235))
+
+  - CN.png => triangle-red.png
+  - EN.png => triangle-blue.png
+  - Caps.png => triangle-green.png
+  - CN => oreo-red
+  - EN => oreo-blue
+  - Caps => oreo-green
+
+- 其他的修复和优化
+
 ## 2025.09.21
 
 - 优化了软件图标，并更新了软件图标文件名

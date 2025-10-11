@@ -12,11 +12,11 @@
     <a href="https://github.com/abgox/InputTip">
         <img src="https://img.shields.io/github/v/release/abgox/InputTip?label=version" alt="version" />
     </a>
-    <a href="https://img.shields.io/github/languages/code-size/abgox/InputTip.svg">
-        <img src="https://img.shields.io/github/languages/code-size/abgox/InputTip.svg" alt="code size" />
+    <a href="https://github.com/abgox/InputTip">
+        <img src="https://img.shields.io/github/languages/code-size/abgox/InputTip" alt="code size" />
     </a>
-    <a href="https://img.shields.io/github/repo-size/abgox/InputTip.svg">
-        <img src="https://img.shields.io/github/repo-size/abgox/InputTip.svg" alt="repo size" />
+    <a href="https://github.com/abgox/InputTip">
+        <img src="https://img.shields.io/github/repo-size/abgox/InputTip" alt="repo size" />
     </a>
     <a href="https://github.com/abgox/InputTip">
         <img src="https://img.shields.io/github/created-at/abgox/InputTip" alt="created" />
@@ -25,30 +25,31 @@
 
 ---
 
-![InputTip](https://socialify.git.ci/abgox/InputTip/image?description=1&font=Inter&forks=1&issues=1&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI%2BDQogIDxtYXNrIGlkPSJjdXJzb3JNYXNrIj4NCiAgICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0id2hpdGUiLz4NCiAgICA8IS0tIOWFieagh%2BaVtOS9k%2BaUvuWkpyAxLjEg5YCN5bm25L%2Bd5oyB5Lit5b%2BD5a%2B56b2QIC0tPg0KICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDI1NiwyNTYpIHNjYWxlKDEuMSkgdHJhbnNsYXRlKC0yNTYsLTI1NikiPg0KICAgICAgPHJlY3QgeD0iMjMwIiB5PSIxMDAiIHdpZHRoPSI1MiIgaGVpZ2h0PSIzMTIiIHJ4PSIxMCIgcnk9IjEwIiBmaWxsPSJibGFjayIvPg0KICAgICAgPHJlY3QgeD0iMTgwIiB5PSI4MCIgd2lkdGg9IjE1MiIgaGVpZ2h0PSIzNiIgcng9IjgiIHJ5PSI4IiBmaWxsPSJibGFjayIvPg0KICAgICAgPHJlY3QgeD0iMTgwIiB5PSIzOTYiIHdpZHRoPSIxNTIiIGhlaWdodD0iMzYiIHJ4PSI4IiByeT0iOCIgZmlsbD0iYmxhY2siLz4NCiAgICA8L2c%2BDQogIDwvbWFzaz4NCiAgPHJlY3QgeD0iOCIgeT0iOCIgd2lkdGg9IjQ5NiIgaGVpZ2h0PSI0OTYiIHJ4PSI2NCIgcnk9IjY0IiBmaWxsPSIjMUU4OEZGIiBtYXNrPSJ1cmwoI2N1cnNvck1hc2spIi8%2BDQo8L3N2Zz4NCg%3D%3D&name=1&owner=1&stargazers=1&theme=Auto)
+![github-socialify](https://abgox.com/github-socialify-InputTip.svg)
 
 <p align="center">
-  <strong>喜欢这个项目？请给它一个 ⭐️ 或 <a href="https://abgox.com/donate">赞赏 💰</a></strong>
+  <strong>喜欢这个项目？请给它一个 Star ⭐️ 或 <a href="https://abgox.com/donate">赞赏 💰</a></strong>
 </p>
 
 > [!Tip]
 >
 > - InputTip 使用 [AutoHotkey(AHK)](https://github.com/AutoHotkey/AutoHotkey) 语言编写
 >   - [InputTip 可能被误判为游戏外挂，exe 版本可能被误判为病毒程序](https://inputtip.abgox.com/faq/about-virus)
->   - [因此，只推荐使用 zip 版本](https://inputtip.abgox.com/faq/zip-vs-exe)
+>   - [只推荐使用 zip 版本，除非你有不得不使用 exe 版本的理由](https://inputtip.abgox.com/faq/zip-vs-exe)
 > - InputTip 只适用于 **Windows** 系统: **Win10** 以上可用，以下未知
 > - `托盘菜单` 指的是鼠标右键点击任务栏托盘区域的 InputTip 后显示的菜单
 
 ### 介绍
 
-- 一个输入法状态管理工具：实时提示(鼠标样式、符号显示) + 窗口自动切换状态 + 快捷键切换状态
+- 一个输入法状态管理工具: 实时提示(鼠标方案/符号方案) + 状态切换(窗口触发/热键触发)
 
   - [多种状态提示方案](#关于状态提示方案)
     - [鼠标方案](#鼠标方案): 使用多套鼠标光标样式，根据输入法状态加载不同的鼠标光标样式
     - [符号方案](#符号方案): 根据输入法状态在输入光标附近显示不同的 **符号**
+      - 还有一个折中方案: `在鼠标附近显示符号`
   - 切换不同窗口时，自动切换到指定的输入法状态
     - 支持 `标题级` 的匹配
-  - 设置按键强制切换到指定的输入法状态
+  - 设置按键切换到指定的输入法状态
   - 详细便捷的配置菜单
     - 所有的配置变动，都只应该在 `托盘菜单` 中进行
     - 不要手动修改 `InputTip.ini` 文件
@@ -60,7 +61,7 @@
 > - 如果这里无法正常显示，[可前往官网查看](https://inputtip.abgox.com/)
 > - [点击查看 Bilibili 中的介绍及教学视频](https://www.bilibili.com/video/BV15oYKz5EQ8)
 
-<video src="https://inputtip.abgox.com/releases/v2/demo.mp4" controls></video>
+<video src="https://inputtip.abgox.com/releases/v2/demo.mp4" controls autoplay loop muted></video>
 
 ### 新的变化
 
@@ -86,7 +87,7 @@
   - [输入法和应用窗口兼容情况](#兼容情况)
   - [issues](https://github.com/abgox/InputTip/issues)
   - ...
-- 如果还有问题，可以创建 [issues](https://github.com/abgox/InputTip/issues) 或前往 [腾讯频道](https://pd.qq.com/s/gyers18g6?businessType=5) 或 [QQ 反馈交流群(451860327)](https://qm.qq.com/q/Ch6T7YILza) 交流反馈
+- 如果还有问题，可以创建 [issues](https://github.com/abgox/InputTip/issues) 或前往 [腾讯频道](https://pd.qq.com/s/gyers18g6?businessType=5) 交流反馈
 
 ### 安装
 
@@ -163,7 +164,7 @@
 
 1. 取消 `开机自启动`: `托盘菜单` => `开机自启动`
 2. 退出: `托盘菜单` => `退出`
-3. 删除下方的 [目录结构及数据](#目录结构及数据) 中展示的相关目录即可
+3. 删除 [目录结构及数据](#目录结构及数据) 中展示的相关目录即可
 
 ### 目录结构及数据
 
@@ -176,6 +177,7 @@
       ├── InputTip.ini        # 配置文件
       ├── InputTipCursor/     # 鼠标样式
       ├── InputTipSymbol/     # 图片符号
+      ├── InputTipIcon/       # 软件图标
       └── ...                 # 其他源代码文件
   └── ...                     # 其他文件
 
@@ -183,7 +185,8 @@
 
 - exe 版本
 
-  - 没有根目录，建议新建一个目录，将 `InputTip.exe` 放入其中再运行
+  - exe 版本是一个单文件程序，运行后会创建相关目录和文件
+  - 建议新建一个目录，将 `InputTip.exe` 放入其中再运行
 
   ```txt
   InputTip-exe/
@@ -191,6 +194,7 @@
   ├── InputTip.ini            # 配置文件
   ├── InputTipCursor/         # 鼠标样式
   ├── InputTipSymbol/         # 图片符号
+  ├── InputTipIcon/           # 软件图标
   └── ...
   ```
 
@@ -201,6 +205,7 @@
   - `InputTip.ini`
   - `InputTipCursor` (如果没有修改，可以忽略)
   - `InputTipSymbol` (如果没有修改，可以忽略)
+  - `InputTipIcon` (如果没有修改，可以忽略)
 
 - 如果使用 [Scoop](https://scoop.sh/) 安装 [abyss](https://abyss.abgox.com) 中的 `InputTip-zip` 或 `InputTip`
   - 它会将这些数据文件或文件夹保存在 [Scoop](https://scoop.sh/) 的 persist 目录中
@@ -219,7 +224,7 @@
 
 - 在 `src` 目录下有一个 `plugins` 目录
 - 目录中添加了一个空的 `InputTip.plugin.ahk` 文件
-- InputTip 会引入这个文件，你可以在其中添加自定义功能，比如 **自定义热键**、**自定义热字串** 等
+- InputTip 会加载这个源代码文件，你可以在其中添加自定义功能，比如 **自定义热键**、**自定义热字串** 等
 - 或者，在 `plugins` 目录中新建 `.ahk` 文件，然后在 `InputTip.plugin.ahk` 中 `#Include` 它
 - `plugins` 目录的特点:
   - 在 `plugins` 目录中的文件不会因为版本更新而被覆盖
@@ -230,7 +235,7 @@
 
 #### 鼠标方案
 
-- 使用多套鼠标样式，根据输入法状态加载不同的鼠标样式
+- 同时使用多套鼠标样式，根据输入法状态加载不同的鼠标样式
 - 默认使用 [多彩水滴 Oreo 光标](https://zhutix.com/ico/oreo-cu)
   - 默认中文状态为 **红色**，英文状态为 **蓝色**，大写锁定为 **绿色**
   - 在 [更多已适配的鼠标样式](https://inputtip.abgox.com/download/extra) 中有提供它们的左手镜像版本
@@ -322,6 +327,7 @@
    - 重启系统
 
 > [!Tip]
+>
 > 如果有多块屏幕，副屏幕上可能有坐标偏差，需要通过 `托盘菜单` => `特殊偏移量` 手动调整
 
 ### 自定义鼠标样式
@@ -332,7 +338,7 @@
 
 - 你需要在 `InputTipCursor` 目录下创建一个文件夹
 
-- 文件夹不应该放在 `default` 文件夹下
+- 不应该放在 `default` 文件夹下
 
 - 文件夹中只能包含鼠标样式文件(后缀名为 `.cur` 或 `.ani`)
 
@@ -366,8 +372,8 @@
 >
 > - 你应该尽量让三种状态下的鼠标样式文件夹中包含的鼠标样式文件的数量和类型是一致的
 > - 比如：
->   - 如果中文状态的目录路径下有 `IBeam.cur` 或 `IBeam.ani` 文件，英文状态或大写锁定的目录路径下没有。
->   - 则切换到中文状态时，会加载中文状态的 `IBeam.cur`
+>   - 如果中文状态的文件夹路径下有 `IBeam.cur` 或 `IBeam.ani` 文件，英文状态或大写锁定的文件夹路径下没有。
+>   - 则切换到中文状态时，会加载中文状态的 `IBeam.cur` 或 `IBeam.ani`
 >   - 但是再切换到英文或大写锁定时，`IBeam` 类型的鼠标样式不会变化，因为英文和大写锁定缺少对应的样式文件
 
 ### 兼容情况
@@ -387,7 +393,7 @@
 > [!Tip]
 >
 > - InputTip 使用 `通用` 和 `自定义` 模式兼容不同输入法的状态识别，默认使用 `通用` 模式
-> - 如果你熟悉了 `自定义` 模式，建议直接使用 `自定义` 模式去配置规则，状态识别更稳定
+> - 如果你熟悉了 `自定义` 模式，建议直接使用 `自定义` 模式去配置规则，状态识别会更稳定
 > - 设置: `托盘菜单` => `输入法相关`
 
 - `通用`
