@@ -25,6 +25,8 @@ configCheckInterval := 5000  ; 每5秒检查一次配置文件变化
 shortcutSequence := 0    ; 每次新快捷键或 Alt 重新按下时递增，用于取消旧线程
 syntheticCtrlDown := false
 syntheticShiftDown := false
+syntheticAltDown := false
+altTabInProgress := false
 
 ; 初始化键盘钩子功能（仅注册热键，不启动定时器）
 InitKeyboardHook() {
@@ -32,6 +34,9 @@ InitKeyboardHook() {
     Hotkey("!u", DebugHotkey)
     Hotkey("$~LAlt", CancelActiveShortcut)
     Hotkey("$~RAlt", CancelActiveShortcut)
+    Hotkey("$~LAlt Up", HandleAltRelease)
+    Hotkey("$~RAlt Up", HandleAltRelease)
+    Hotkey("$~Tab", HandleTabDuringAlt)
 
     ; 基本功能键映射
     Hotkey("$!c", CopyHotkey)
@@ -68,6 +73,9 @@ ReEnableKeyboardHook() {
     Hotkey("!u", "On")
     Hotkey("$~LAlt", "On")
     Hotkey("$~RAlt", "On")
+    Hotkey("$~LAlt Up", "On")
+    Hotkey("$~RAlt Up", "On")
+    Hotkey("$~Tab", "On")
 
     ; 基本功能键映射
     Hotkey("$!c", "On")
@@ -106,6 +114,9 @@ DisableKeyboardHook() {
     Hotkey("!u", "Off")
     Hotkey("$~LAlt", "Off")
     Hotkey("$~RAlt", "Off")
+    Hotkey("$~LAlt Up", "Off")
+    Hotkey("$~RAlt Up", "Off")
+    Hotkey("$~Tab", "Off")
 
     ; 基本功能键映射
     Hotkey("$!c", "Off")
@@ -153,11 +164,58 @@ IsAltPhysicallyDown() {
     return GetKeyState("LAlt", "P") || GetKeyState("RAlt", "P")
 }
 
+EnsureSyntheticAltDown() {
+    global syntheticAltDown
+
+    if (!syntheticAltDown) {
+        Send("{Blind}{Alt Down}")
+        syntheticAltDown := true
+    }
+}
+
+ReleaseSyntheticAlt() {
+    global syntheticAltDown
+
+    if (syntheticAltDown) {
+        Send("{Blind}{Alt Up}")
+        syntheticAltDown := false
+    }
+}
+
+HandleTabDuringAlt(*) {
+    global altTabInProgress
+
+    if (!IsAltPhysicallyDown()) {
+        return
+    }
+
+    altTabInProgress := true
+    CancelActiveShortcut()
+
+    ; 如果上一条映射刚把 Alt 释放掉，补一个逻辑 Alt 让系统 Alt+Tab 接管。
+    if (IsAltPhysicallyDown()) {
+        EnsureSyntheticAltDown()
+    }
+}
+
+HandleAltRelease(*) {
+    global altTabInProgress
+
+    ReleaseSyntheticModifiers()
+
+    if (!IsAltPhysicallyDown()) {
+        altTabInProgress := false
+        ReleaseSyntheticAlt()
+    }
+}
+
 StartMappedShortcut() {
-    global shortcutSequence
+    global shortcutSequence, altTabInProgress
 
     shortcutSequence += 1
+    altTabInProgress := false
     ReleaseSyntheticModifiers()
+    ReleaseSyntheticAlt()
 
     context := { token: shortcutSequence, altWasDown: IsAltPhysicallyDown() }
 
@@ -169,10 +227,17 @@ StartMappedShortcut() {
 }
 
 FinishMappedShortcut(context) {
+    global altTabInProgress
+
     ReleaseSyntheticModifiers()
 
     if (!IsShortcutCanceled(context.token) && context.altWasDown && IsAltPhysicallyDown()) {
-        Send("{Blind}{Alt Down}")
+        EnsureSyntheticAltDown()
+        return
+    }
+
+    if (!altTabInProgress) {
+        ReleaseSyntheticAlt()
     }
 }
 
