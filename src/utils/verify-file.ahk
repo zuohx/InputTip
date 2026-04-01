@@ -179,30 +179,34 @@ if (A_IsCompiled) {
         "../InputTip.bat",
         ; 脚本文件
         "./InputTip.JAB.JetBrains.ahk",
-        "plugins/InputTip.plugin.ahk",
-        "utils/options.ahk",
-        "utils/tools.ahk",
-        "utils/create-gui.ahk",
-        "utils/ini.ahk",
-        "utils/IME.ahk",
-        "utils/app-list.ahk",
-        "utils/hotkey-gui.ahk",
-        "utils/var.ahk",
-        "utils/check-version.ahk",
-        "utils/show.ahk",
-        "menu/tray-menu.ahk",
-        "menu/startup.ahk",
-        "menu/check-update.ahk",
-        "menu/input-method.ahk",
-        "menu/cursor-mode.ahk",
-        "menu/bw-list.ahk",
-        "menu/symbol-pos.ahk",
-        "menu/app-offset.ahk",
-        "menu/switch-window.ahk",
+        ; menu
         "menu/about.ahk",
+        "menu/app-offset.ahk",
+        "menu/auto-exit.ahk",
+        "menu/bw-list.ahk",
+        "menu/check-update.ahk",
+        "menu/cursor-mode.ahk",
+        "menu/input-method.ahk",
+        "menu/other-config.ahk",
         "menu/scheme-cursor.ahk",
         "menu/scheme-symbol.ahk",
-        "menu/other-config.ahk",
+        "menu/startup.ahk",
+        "menu/switch-window.ahk",
+        "menu/symbol-pos.ahk",
+        "menu/tray-menu.ahk",
+        ; plugins
+        "plugins/InputTip.plugin.ahk",
+        ; utils
+        "utils/app-list.ahk",
+        "utils/check-version.ahk",
+        "utils/create-gui.ahk",
+        "utils/hotkey-gui.ahk",
+        "utils/IME.ahk",
+        "utils/ini.ahk",
+        "utils/options.ahk",
+        "utils/show.ahk",
+        "utils/tools.ahk",
+        "utils/var.ahk",
     ]
 
     missFileList := []
@@ -305,7 +309,7 @@ if (A_IsCompiled) {
             g.SetFont("s12", "Microsoft YaHei")
             g.AddText("cRed", "可能因为网络等其他原因，文件没有正常恢复，请手动处理")
             g.AddLink("cGray", '你可以前往 <a href="https://inputtip.abgox.com">官网</a>   <a href="https://github.com/abgox/InputTip">Github</a>   <a href="https://gitee.com/abgox/InputTip">Github</a> 手动下载')
-            g.AddButton("xs w" _w, "我知道了").OnEvent("Click", (*) => ExitApp())
+            g.AddButton("xs w" _w, "我知道了").OnEvent("Click", (*) => (ExitApp()))
             g.Show()
 
             while (1) {

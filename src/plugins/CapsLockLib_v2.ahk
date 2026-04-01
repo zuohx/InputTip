@@ -32,9 +32,8 @@ CapsLockHandler(*) {
     PressDuration := A_TickCount - CapsLockStartTime
 
     if (PressDuration < LongPressThreshold) {
-        SendInput("{Alt down}{Shift down}{Shift up}")
-        Sleep 200
-        SendInput("{Alt up}")
+        SendInput("{Ctrl down}{Shift down}{Shift up}")
+        SendInput("{Ctrl up}")
     } else {
         SetCapsLockState(GetKeyState("CapsLock", "T") ? "Off" : "On")
     }

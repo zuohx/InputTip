@@ -8,7 +8,8 @@ hasWindowChange := 1
 
 lastInputState := ""
 inputStateChanged := 0
-while 1 {
+
+loop {
     Sleep(delay)
     ; 正在使用鼠标或有键盘操作
     if (A_TimeIdle < leaveDelay) {
@@ -31,6 +32,9 @@ while 1 {
             hasWindowChange := lastWindow != exe_name ":" exe_title
 
             if (hasWindowChange) {
+                if (validateMatch(exe_name, exe_title, app_AutoExit)) {
+                    fn_exit()
+                }
                 if (symbolType) {
                     if (!showCursorPos && !WinActive("ahk_class AutoHotkeyGUI") && (validateMatch(exe_name, exe_title, app_HideSymbol) || !validateMatch(exe_name, exe_title, app_ShowSymbol))) {
                         hideSymbol()

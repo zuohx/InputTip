@@ -27,8 +27,6 @@ configCheckInterval := 5000  ; 每5秒检查一次配置文件变化
 InitKeyboardHook() {
     ; 调试信息
     Hotkey("!u", DebugHotkey)
-    ; 禁用Alt键
-    Hotkey("Alt", AltDisable)
 
     ; 基本功能键映射
     Hotkey("$!c", CopyHotkey)
@@ -63,8 +61,6 @@ InitKeyboardHook() {
 ReEnableKeyboardHook() {
     ; 调试信息
     Hotkey("!u", "On")
-    ; 禁用Alt键
-    Hotkey("Alt", "On")
 
     ; 基本功能键映射
     Hotkey("$!c", "On")
@@ -88,7 +84,7 @@ ReEnableKeyboardHook() {
     Hotkey("$!r", "On")
 
     ; 删除和导航功能
-    Hotkey("$!Backspace", "Off")
+    Hotkey("$!Backspace", "On")
     Hotkey("$!Left", "On")
     Hotkey("$!Right", "On")
     Hotkey("$!+Left", "On")
@@ -99,8 +95,6 @@ ReEnableKeyboardHook() {
 DisableKeyboardHook() {
     ; 调试信息
     Hotkey("!u", "Off")
-    ; 禁用Alt键
-    Hotkey("Alt", "Off")
 
     ; 基本功能键映射
     Hotkey("$!c", "Off")
@@ -124,6 +118,7 @@ DisableKeyboardHook() {
     Hotkey("$!r", "Off")
 
     ; 删除和导航功能
+    Hotkey("$!Backspace", "Off")
     Hotkey("$!Left", "Off")
     Hotkey("$!Right", "Off")
     Hotkey("$!+Left", "Off")
@@ -135,111 +130,119 @@ DebugHotkey(*) {
     DebugCurrentProcess()
 }
 
-; 禁用Alt键
-AltDisable(*) {
-    return
+; 发送映射按键前，先临时释放 Alt，避免 Alt 状态滞留到目标组合中
+SendMappedKeys(keys) {
+    altWasDown := GetKeyState("LAlt", "P") || GetKeyState("RAlt", "P")
+
+    if (altWasDown) {
+        Send("{Blind}{Alt Up}")
+    }
+
+    Send(keys)
+
+    if (altWasDown && (GetKeyState("LAlt", "P") || GetKeyState("RAlt", "P"))) {
+        Send("{Blind}{Alt Down}")
+    }
 }
 
 ; 复制
 CopyHotkey(*) {
-    Send("{Ctrl Down}c{Ctrl Up}")
+    SendMappedKeys("^c")
 }
 
 ; 剪切
 CutHotkey(*) {
-    Send("{Ctrl Down}x{Ctrl Up}")
+    SendMappedKeys("^x")
 }
 
 ; 粘贴
 PasteHotkey(*) {
-    Send("{Ctrl Down}v{Ctrl Up}")
+    SendMappedKeys("^v")
 }
 
 ; 特殊粘贴
 PasteSpecialHotkey(*) {
-    Send("{Ctrl Down}{Shift Down}v{Ctrl Up}{Shift Up}")
+    SendMappedKeys("^+v")
 }
 
 ; 全选
 SelectAllHotkey(*) {
-    Send("{Ctrl Down}a{Ctrl Up}")
+    SendMappedKeys("^a")
 }
 
 ; 保存
 SaveHotkey(*) {
-    Send("{Ctrl Down}s{Ctrl Up}")
+    SendMappedKeys("^s")
 }
 
 ; 关闭窗口
 CloseWindowHotkey(*) {
-    Send("{Ctrl Down}w{Ctrl Up}")
+    SendMappedKeys("^w")
 }
 
 ; 撤销
 UndoHotkey(*) {
-    Send("{Ctrl Down}z{Ctrl Up}")
+    SendMappedKeys("^z")
 }
 
 ; 重做
 RedoHotkey(*) {
-    Send("{Ctrl Down}{Shift Down}z{Ctrl Up}{Shift Up}")
+    SendMappedKeys("^+z")
 }
 
 ; 查找
 FindHotkey(*) {
-    Send("{Ctrl Down}f{Ctrl Up}")
+    SendMappedKeys("^f")
 }
 
 ; 查找下一个
 FindNextHotkey(*) {
-    Send("{F3 Down}{F3 Up}")
+    SendMappedKeys("{F3}")
 }
 
 ; 查找上一个
 FindPrevHotkey(*) {
-    Send("{Shift Down}{F3 Down}{Shift Up}{F3 Up}")
+    SendMappedKeys("+{F3}")
 }
 
 ; 删除行
 DeleteLineHotkey(*) {
-    Send("+{Home}")
-    Sleep(10)
-    Send("{Delete}")
+    SendMappedKeys("+{Home}{Delete}")
 }
 
 ; 新标签页
 NewTabHotkey(*) {
-    Send("{Ctrl Down}t{Ctrl Up}")
+    SendMappedKeys("^t")
 }
 
 ; 重新打开标签页
 ReopenTabHotkey(*) {
-    Send("{Ctrl Down}{Shift Down}t{Ctrl Up}{Shift Up}")
+    SendMappedKeys("^+t")
 }
 
 ; 刷新
 ReloadHotkey(*) {
-    Send("{Ctrl Down}r{Ctrl Up}")
+    SendMappedKeys("^r")
 }
 
 ; Home键
 HomeHotkey(*) {
-    Send("{Home}")
+    SendMappedKeys("{Home}")
 }
 
 ; End键
 EndHotkey(*) {
-    Send("{End}")
+    SendMappedKeys("{End}")
 }
 
 ; 选择到Home
 SelectToHomeHotkey(*) {
-    Send("+{Home}")
+    SendMappedKeys("+{Home}")
 }
 
 ; 选择到End
 SelectToEndHotkey(*) {
-    Send("+{End}")
+    SendMappedKeys("+{End}")
 }
 
 ; 启动实时窗口检查定时器（独立函数）

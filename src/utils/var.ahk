@@ -88,7 +88,11 @@ hoverHide := readIni("hoverHide", 1)
 ; 在多少毫秒后隐藏符号，0 表示永不隐藏
 hideSymbolDelay := readIni("hideSymbolDelay", 0)
 
+; 符号的显示模式
 symbolShowMode := readIni("symbolShowMode", 1)
+
+; 是否保持大写锁定状态
+keepCapsLock := readIni("keepCapsLock", 0)
 
 ; 轮询响应间隔
 delay := readIni("delay", 20)
@@ -119,12 +123,18 @@ stateMap := {
     1: "中文状态",
     EN: "英文状态",
     0: "英文状态",
-    Caps: "大写锁定"
+    Caps: "大写锁定",
+    Run: "运行",
+    Pause: "暂停",
+    Exit: "退出"
 }
 stateTextMap := {
     中文状态: "CN",
     英文状态: "EN",
-    大写锁定: "Caps"
+    大写锁定: "Caps",
+    运行: "Run",
+    暂停: "Pause",
+    退出: "Exit"
 }
 
 left := 0, top := 0, right := 0, bottom := 0
@@ -216,8 +226,11 @@ for v in cursorInfo {
     }
 }
 
+app_HideSymbol := StrSplit(readIniSection("App-HideSymbol"), "`n")
+app_ShowSymbol := StrSplit(readIniSection("App-ShowSymbol"), "`n")
+app_AutoExit := StrSplit(readIniSection("App-Auto-Exit"), "`n")
+updateAutoSwitchList()
 
-updateList()
 updateAppOffset()
 updateCursorMode()
 updateCursor()
@@ -520,7 +533,7 @@ loadSymbol(state, left, top, right, bottom, isShowCursorPos := 0) {
     ; JAB 程序通过 GetCaretPosFromJAB 获取到的 W 和 H 非常不稳定
     ; 还是继续使用 top，根据实际情况再调整特殊偏移量
     if (InStr(modeList.JAB, exe_str)) {
-        offsetY := top
+        offsetY := top + bottom
     } else {
         offsetY := symbolOffsetBase ? bottom : top
     }
@@ -606,21 +619,6 @@ hideSymbol() {
         }
     }
     global lastSymbol := ""
-}
-
-; 更新符号的黑白名单和自动切换列表
-updateList() {
-    global
-
-    restartJAB()
-
-    ; 应用列表: 符号的黑名单
-    app_HideSymbol := StrSplit(readIniSection("App-HideSymbol"), "`n")
-
-    ; 应用列表: 符号的白名单
-    app_ShowSymbol := StrSplit(readIniSection("App-ShowSymbol"), "`n")
-
-    updateAutoSwitchList()
 }
 
 ; 更新自动切换列表
@@ -803,7 +801,7 @@ killJAB(wait := 1, delete := 0) {
  */
 createScheduleTask(path, taskName, args := [], runLevel := "Highest", isWait := 0, needStartUp := 0, *) {
     if (A_IsAdmin) {
-        cmd := 'powershell -NoProfile -Command $action = New-ScheduledTaskAction -Execute "`'\"' path '\"`'" '
+        cmd := '-NoProfile -Command $action = New-ScheduledTaskAction -Execute "`'\"' path '\"`'" '
         if (args.Length) {
             cmd .= '-Argument ' "'"
             for v in args {
@@ -819,10 +817,15 @@ createScheduleTask(path, taskName, args := [], runLevel := "Highest", isWait := 
         }
         cmd .= 'Register-ScheduledTask -TaskName ' taskName ' -InputObject $task -Force;'
         try {
-            isWait ? RunWait(cmd, , "Hide") : Run(cmd, , "Hide")
+            isWait ? RunWait('powershell ' cmd, , "Hide") : Run('powershell ' cmd, , "Hide")
             return 1
         } catch {
-            return 0
+            try {
+                isWait ? RunWait('pwsh ' cmd, , "Hide") : Run('pwsh ' cmd, , "Hide")
+                return 1
+            } catch {
+                return 0
+            }
         }
     }
     return 0

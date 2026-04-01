@@ -8,6 +8,7 @@
 #Include "*i symbol-pos.ahk"
 #Include "*i app-offset.ahk"
 #Include "*i switch-window.ahk"
+#Include "*i auto-exit.ahk"
 #Include "*i about.ahk"
 
 #Include "*i scheme-cursor.ahk"
@@ -70,12 +71,6 @@ makeTrayMenu() {
     A_TrayMenu.Add("暂停/运行", pauseApp)
     A_TrayMenu.Default := "暂停/运行"
     A_TrayMenu.ClickCount := 1
-    A_TrayMenu.Add("暂停/运行快捷键", (*) => (
-        setHotKeyGui([{
-            config: "hotkey_Pause",
-            tip: "暂停/运行"
-        }], "软件暂停/运行")
-    ))
     A_TrayMenu.Add()
     A_TrayMenu.Add("输入法相关", fn_input_mode)
     A_TrayMenu.Add("状态切换快捷键", (*) => (
@@ -111,10 +106,6 @@ makeTrayMenu() {
 
     A_TrayMenu.Add()
     A_TrayMenu.Add("退出", fn_exit)
-
-    if (enableJABSupport) {
-        runJAB()
-    }
 }
 
 fn_exit(*) {
@@ -626,9 +617,7 @@ pauseApp(*) {
         setTrayIcon(iconRunning, 0)
         reloadSymbol()
         reloadCursor()
-        if (enableJABSupport) {
-            runJAB()
-        }
+        restartJAB()
     } else {
         A_TrayMenu.Check("暂停/运行")
         setTrayIcon(iconPaused, 1)
@@ -660,26 +649,44 @@ runJAB() {
         return
     if (A_IsCompiled) {
         try {
-            if (compareVersion(currentVersion, FileGetVersion("InputTip.JAB.JetBrains.exe")) != 0) {
+            if (VerCompare(currentVersion, FileGetVersion("InputTip.JAB.JetBrains.exe")) != 0) {
                 FileInstall("InputTip.JAB.JetBrains.exe", "InputTip.JAB.JetBrains.exe", 1)
             }
         } catch {
             FileInstall("InputTip.JAB.JetBrains.exe", "InputTip.JAB.JetBrains.exe", 1)
         }
-        SetTimer(runAppTimer1, -1)
-        runAppTimer1() {
-            try {
-                createScheduleTask(A_ScriptDir "\InputTip.JAB.JetBrains.exe", "abgox.InputTip.JAB.JetBrains", , "Limited", 1)
-                Run('schtasks /run /tn "abgox.InputTip.JAB.JetBrains"', , "Hide")
+        try {
+            done := createScheduleTask(A_ScriptDir "\InputTip.JAB.JetBrains.exe", "abgox.InputTip.JAB.JetBrains", , "Limited", 1)
+            if (!done) {
+                createTipGui([{
+                    opt: "cRed",
+                    text: "启动 JAB 进程失败!",
+                }, {
+                    opt: "cRed",
+                    text: "请检查系统中是否存在 powershell.exe 或 pwsh.exe"
+                }], "InputTip - 错误").Show()
+                writeIni("enableJABSupport", 0)
+                global enableJABSupport := 0
+                return 1
             }
+            Run('schtasks /run /tn "abgox.InputTip.JAB.JetBrains"', , "Hide")
         }
     } else if (A_IsAdmin) {
-        SetTimer(runAppTimer2, -1)
-        runAppTimer2() {
-            try {
-                createScheduleTask(A_AhkPath, "abgox.InputTip.JAB.JetBrains", [A_ScriptDir "\InputTip.JAB.JetBrains.ahk"], "Limited", 1)
-                Run('schtasks /run /tn "abgox.InputTip.JAB.JetBrains"', , "Hide")
+        try {
+            done := createScheduleTask(A_AhkPath, "abgox.InputTip.JAB.JetBrains", [A_ScriptDir "\InputTip.JAB.JetBrains.ahk"], "Limited", 1)
+            if (!done) {
+                createTipGui([{
+                    opt: "cRed",
+                    text: "启动 JAB 进程失败!",
+                }, {
+                    opt: "cRed",
+                    text: "请检查系统中是否存在 powershell.exe 或 pwsh.exe"
+                }], "InputTip - 错误").Show()
+                writeIni("enableJABSupport", 0)
+                global enableJABSupport := 0
+                return 1
             }
+            Run('schtasks /run /tn "abgox.InputTip.JAB.JetBrains"', , "Hide")
         }
     } else {
         global JAB_PID
