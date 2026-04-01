@@ -22,11 +22,16 @@ gameProcessesObject := Map() ; 游戏进程查找对象，实现O(1)查找
 gameProcesses := []       ; 游戏进程列表
 lastConfigCheck := 0     ; 配置文件检查时间
 configCheckInterval := 5000  ; 每5秒检查一次配置文件变化
+shortcutSequence := 0    ; 每次新快捷键或 Alt 重新按下时递增，用于取消旧线程
+syntheticCtrlDown := false
+syntheticShiftDown := false
 
 ; 初始化键盘钩子功能（仅注册热键，不启动定时器）
 InitKeyboardHook() {
     ; 调试信息
     Hotkey("!u", DebugHotkey)
+    Hotkey("$~LAlt", CancelActiveShortcut)
+    Hotkey("$~RAlt", CancelActiveShortcut)
 
     ; 基本功能键映射
     Hotkey("$!c", CopyHotkey)
@@ -61,6 +66,8 @@ InitKeyboardHook() {
 ReEnableKeyboardHook() {
     ; 调试信息
     Hotkey("!u", "On")
+    Hotkey("$~LAlt", "On")
+    Hotkey("$~RAlt", "On")
 
     ; 基本功能键映射
     Hotkey("$!c", "On")
@@ -93,8 +100,12 @@ ReEnableKeyboardHook() {
 
 ; 禁用键盘钩子功能（仅禁用热键，不停止定时器）
 DisableKeyboardHook() {
+    CancelActiveShortcut()
+
     ; 调试信息
     Hotkey("!u", "Off")
+    Hotkey("$~LAlt", "Off")
+    Hotkey("$~RAlt", "Off")
 
     ; 基本功能键映射
     Hotkey("$!c", "Off")
@@ -130,69 +141,178 @@ DebugHotkey(*) {
     DebugCurrentProcess()
 }
 
-; 发送映射按键前，先临时释放 Alt，避免 Alt 状态滞留到目标组合中
-SendMappedKeys(keys) {
-    altWasDown := GetKeyState("LAlt", "P") || GetKeyState("RAlt", "P")
+; 重新按下 Alt 或启动新热键时，终止上一个尚未完成的映射线程
+CancelActiveShortcut(*) {
+    global shortcutSequence
 
-    if (altWasDown) {
+    shortcutSequence += 1
+    ReleaseSyntheticModifiers()
+}
+
+IsAltPhysicallyDown() {
+    return GetKeyState("LAlt", "P") || GetKeyState("RAlt", "P")
+}
+
+StartMappedShortcut() {
+    global shortcutSequence
+
+    shortcutSequence += 1
+    ReleaseSyntheticModifiers()
+
+    context := { token: shortcutSequence, altWasDown: IsAltPhysicallyDown() }
+
+    if (context.altWasDown) {
         Send("{Blind}{Alt Up}")
+    }
+
+    return context
+}
+
+FinishMappedShortcut(context) {
+    ReleaseSyntheticModifiers()
+
+    if (!IsShortcutCanceled(context.token) && context.altWasDown && IsAltPhysicallyDown()) {
+        Send("{Blind}{Alt Down}")
+    }
+}
+
+IsShortcutCanceled(token) {
+    global shortcutSequence
+
+    return token != shortcutSequence
+}
+
+PressSyntheticCtrl(token) {
+    global syntheticCtrlDown
+
+    if (IsShortcutCanceled(token)) {
+        return false
+    }
+
+    if (!syntheticCtrlDown) {
+        Send("{Blind}{Ctrl Down}")
+        syntheticCtrlDown := true
+    }
+
+    return !IsShortcutCanceled(token)
+}
+
+PressSyntheticShift(token) {
+    global syntheticShiftDown
+
+    if (IsShortcutCanceled(token)) {
+        return false
+    }
+
+    if (!syntheticShiftDown) {
+        Send("{Blind}{Shift Down}")
+        syntheticShiftDown := true
+    }
+
+    return !IsShortcutCanceled(token)
+}
+
+ReleaseSyntheticCtrl() {
+    global syntheticCtrlDown
+
+    if (syntheticCtrlDown) {
+        Send("{Blind}{Ctrl Up}")
+        syntheticCtrlDown := false
+    }
+}
+
+ReleaseSyntheticShift() {
+    global syntheticShiftDown
+
+    if (syntheticShiftDown) {
+        Send("{Blind}{Shift Up}")
+        syntheticShiftDown := false
+    }
+}
+
+ReleaseSyntheticModifiers() {
+    ReleaseSyntheticShift()
+    ReleaseSyntheticCtrl()
+}
+
+SendKeyStep(token, keys) {
+    if (IsShortcutCanceled(token)) {
+        return false
     }
 
     Send(keys)
 
-    if (altWasDown && (GetKeyState("LAlt", "P") || GetKeyState("RAlt", "P"))) {
-        Send("{Blind}{Alt Down}")
+    return !IsShortcutCanceled(token)
+}
+
+; 发送映射按键前，先临时释放 Alt，并把组合键拆成可中断的分步发送
+SendMappedKeys(keys, useCtrl := false, useShift := false) {
+    context := StartMappedShortcut()
+    token := context.token
+
+    try {
+        if (useCtrl && !PressSyntheticCtrl(token)) {
+            return
+        }
+
+        if (useShift && !PressSyntheticShift(token)) {
+            return
+        }
+
+        SendKeyStep(token, keys)
+    } finally {
+        FinishMappedShortcut(context)
     }
 }
 
 ; 复制
 CopyHotkey(*) {
-    SendMappedKeys("^c")
+    SendMappedKeys("c", true)
 }
 
 ; 剪切
 CutHotkey(*) {
-    SendMappedKeys("^x")
+    SendMappedKeys("x", true)
 }
 
 ; 粘贴
 PasteHotkey(*) {
-    SendMappedKeys("^v")
+    SendMappedKeys("v", true)
 }
 
 ; 特殊粘贴
 PasteSpecialHotkey(*) {
-    SendMappedKeys("^+v")
+    SendMappedKeys("v", true, true)
 }
 
 ; 全选
 SelectAllHotkey(*) {
-    SendMappedKeys("^a")
+    SendMappedKeys("a", true)
 }
 
 ; 保存
 SaveHotkey(*) {
-    SendMappedKeys("^s")
+    SendMappedKeys("s", true)
 }
 
 ; 关闭窗口
 CloseWindowHotkey(*) {
-    SendMappedKeys("^w")
+    SendMappedKeys("w", true)
 }
 
 ; 撤销
 UndoHotkey(*) {
-    SendMappedKeys("^z")
+    SendMappedKeys("z", true)
 }
 
 ; 重做
 RedoHotkey(*) {
-    SendMappedKeys("^+z")
+    SendMappedKeys("z", true, true)
 }
 
 ; 查找
 FindHotkey(*) {
-    SendMappedKeys("^f")
+    SendMappedKeys("f", true)
 }
 
 ; 查找下一个
@@ -202,27 +322,46 @@ FindNextHotkey(*) {
 
 ; 查找上一个
 FindPrevHotkey(*) {
-    SendMappedKeys("+{F3}")
+    SendMappedKeys("{F3}", false, true)
 }
 
 ; 删除行
 DeleteLineHotkey(*) {
-    SendMappedKeys("+{Home}{Delete}")
+    context := StartMappedShortcut()
+    token := context.token
+
+    try {
+        if (!PressSyntheticShift(token)) {
+            return
+        }
+
+        if (!SendKeyStep(token, "{Home}")) {
+            return
+        }
+
+        ReleaseSyntheticShift()
+
+        if (!SendKeyStep(token, "{Delete}")) {
+            return
+        }
+    } finally {
+        FinishMappedShortcut(context)
+    }
 }
 
 ; 新标签页
 NewTabHotkey(*) {
-    SendMappedKeys("^t")
+    SendMappedKeys("t", true)
 }
 
 ; 重新打开标签页
 ReopenTabHotkey(*) {
-    SendMappedKeys("^+t")
+    SendMappedKeys("t", true, true)
 }
 
 ; 刷新
 ReloadHotkey(*) {
-    SendMappedKeys("^r")
+    SendMappedKeys("r", true)
 }
 
 ; Home键
@@ -237,12 +376,12 @@ EndHotkey(*) {
 
 ; 选择到Home
 SelectToHomeHotkey(*) {
-    SendMappedKeys("+{Home}")
+    SendMappedKeys("{Home}", false, true)
 }
 
 ; 选择到End
 SelectToEndHotkey(*) {
-    SendMappedKeys("+{End}")
+    SendMappedKeys("{End}", false, true)
 }
 
 ; 启动实时窗口检查定时器（独立函数）
