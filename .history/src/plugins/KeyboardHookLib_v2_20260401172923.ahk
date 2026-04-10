@@ -15,6 +15,8 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
 
+A_MenuMaskKey := "vkE8"
+
 ; 全局变量
 lastWindowState := true  ; 记录上一次的窗口状态，true=启用热键，false=禁用热键
 lastProcessName := ""     ; 记录上一次的进程名
@@ -22,112 +24,93 @@ gameProcessesObject := Map() ; 游戏进程查找对象，实现O(1)查找
 gameProcesses := []       ; 游戏进程列表
 lastConfigCheck := 0     ; 配置文件检查时间
 configCheckInterval := 5000  ; 每5秒检查一次配置文件变化
+keyboardHookEnabled := true
+shortcutSequence := 0    ; 每次新快捷键或 Alt 重新按下时递增，用于取消旧线程
+syntheticCtrlDown := false
+syntheticShiftDown := false
+syntheticAltDown := false
+altStateWatchInterval := 30
 
-; 初始化键盘钩子功能（仅注册热键，不启动定时器）
+; 初始化键盘钩子功能
 InitKeyboardHook() {
-    ; 调试信息
-    Hotkey("!u", DebugHotkey)
-    ; 禁用Alt键
-    Hotkey("Alt", AltDisable)
+    global keyboardHookEnabled
 
-    ; 基本功能键映射
-    Hotkey("$!c", CopyHotkey)
-    Hotkey("$!x", CutHotkey)
-    Hotkey("$!v", PasteHotkey)
-    Hotkey("$!+v", PasteSpecialHotkey)
-    Hotkey("$!a", SelectAllHotkey)
-    Hotkey("$!s", SaveHotkey)
-    Hotkey("$!w", CloseWindowHotkey)
-    Hotkey("$!z", UndoHotkey)
-    Hotkey("$!+z", RedoHotkey)
-    Hotkey("$!f", FindHotkey)
-
-    ; 查找功能
-    Hotkey("$!g", FindNextHotkey)
-    Hotkey("$!+g", FindPrevHotkey)
-
-    ; 其他功能
-    Hotkey("$!t", NewTabHotkey)
-    Hotkey("$!+t", ReopenTabHotkey)
-    Hotkey("$!r", ReloadHotkey)
-
-    ; 删除和导航功能
-    Hotkey("$!Backspace", DeleteLineHotkey)
-    Hotkey("$!Left", HomeHotkey)
-    Hotkey("$!Right", EndHotkey)
-    Hotkey("$!+Left", SelectToHomeHotkey)
-    Hotkey("$!+Right", SelectToEndHotkey)
+    keyboardHookEnabled := true
+    StartAltStateWatcher()
 }
 
 ; 重新启用键盘钩子功能（专门用于重新启用已禁用的热键）
 ReEnableKeyboardHook() {
-    ; 调试信息
-    Hotkey("!u", "On")
-    ; 禁用Alt键
-    Hotkey("Alt", "On")
+    global keyboardHookEnabled
 
-    ; 基本功能键映射
-    Hotkey("$!c", "On")
-    Hotkey("$!x", "On")
-    Hotkey("$!v", "On")
-    Hotkey("$!+v", "On")
-    Hotkey("$!a", "On")
-    Hotkey("$!s", "On")
-    Hotkey("$!w", "On")
-    Hotkey("$!z", "On")
-    Hotkey("$!+z", "On")
-    Hotkey("$!f", "On")
-
-    ; 查找功能
-    Hotkey("$!g", "On")
-    Hotkey("$!+g", "On")
-
-    ; 其他功能
-    Hotkey("$!t", "On")
-    Hotkey("$!+t", "On")
-    Hotkey("$!r", "On")
-
-    ; 删除和导航功能
-    Hotkey("$!Backspace", "Off")
-    Hotkey("$!Left", "On")
-    Hotkey("$!Right", "On")
-    Hotkey("$!+Left", "On")
-    Hotkey("$!+Right", "On")
+    keyboardHookEnabled := true
+    StartAltStateWatcher()
 }
 
 ; 禁用键盘钩子功能（仅禁用热键，不停止定时器）
 DisableKeyboardHook() {
-    ; 调试信息
-    Hotkey("!u", "Off")
-    ; 禁用Alt键
-    Hotkey("Alt", "Off")
+    global keyboardHookEnabled
 
-    ; 基本功能键映射
-    Hotkey("$!c", "Off")
-    Hotkey("$!x", "Off")
-    Hotkey("$!v", "Off")
-    Hotkey("$!+v", "Off")
-    Hotkey("$!a", "Off")
-    Hotkey("$!s", "Off")
-    Hotkey("$!w", "Off")
-    Hotkey("$!z", "Off")
-    Hotkey("$!+z", "Off")
-    Hotkey("$!f", "Off")
+    keyboardHookEnabled := false
+    CancelActiveShortcut()
+    StopAltStateWatcher()
+}
 
-    ; 查找功能
-    Hotkey("$!g", "Off")
-    Hotkey("$!+g", "Off")
+IsKeyboardHookEnabled() {
+    global keyboardHookEnabled
 
-    ; 其他功能
-    Hotkey("$!t", "Off")
-    Hotkey("$!+t", "Off")
-    Hotkey("$!r", "Off")
+    return keyboardHookEnabled
+}
 
-    ; 删除和导航功能
-    Hotkey("$!Left", "Off")
-    Hotkey("$!Right", "Off")
-    Hotkey("$!+Left", "Off")
-    Hotkey("$!+Right", "Off")
+IsCustomAltActive() {
+    return IsKeyboardHookEnabled()
+        && IsAltPhysicallyDown()
+        && !GetKeyState("Ctrl", "P")
+        && !GetKeyState("LWin", "P")
+        && !GetKeyState("RWin", "P")
+}
+
+#HotIf IsCustomAltActive()
+*u::DebugHotkey()
+*c::CopyHotkey()
+*x::CutHotkey()
+*v::PasteHotkey()
+*+v::PasteSpecialHotkey()
+*a::SelectAllHotkey()
+*s::SaveHotkey()
+*w::CloseWindowHotkey()
+*z::UndoHotkey()
+*+z::RedoHotkey()
+*f::FindHotkey()
+*g::FindNextHotkey()
+*+g::FindPrevHotkey()
+*t::NewTabHotkey()
+*+t::ReopenTabHotkey()
+*r::ReloadHotkey()
+*Backspace::DeleteLineHotkey()
+*Left::HomeHotkey()
+*Right::EndHotkey()
+*+Left::SelectToHomeHotkey()
+*+Right::SelectToEndHotkey()
+*Tab::AltTabHotkey()
+*+Tab::ShiftAltTabHotkey()
+#HotIf
+
+~LAlt::CancelActiveShortcut()
+~RAlt::CancelActiveShortcut()
+~LAlt Up::HandleAltRelease()
+~RAlt Up::HandleAltRelease()
+
+StartAltStateWatcher() {
+    global altStateWatchInterval
+
+    SetTimer(WatchAltState, altStateWatchInterval)
+}
+
+StopAltStateWatcher() {
+    SetTimer(WatchAltState, 0)
+    ReleaseSyntheticModifiers()
+    ReleaseSyntheticAlt()
 }
 
 ; 调试热键
@@ -135,111 +118,310 @@ DebugHotkey(*) {
     DebugCurrentProcess()
 }
 
-; 禁用Alt键
-AltDisable(*) {
-    return
+; 重新按下 Alt 或启动新热键时，终止上一个尚未完成的映射线程
+CancelActiveShortcut(*) {
+    global shortcutSequence
+
+    shortcutSequence += 1
+    ReleaseSyntheticModifiers()
+}
+
+IsAltPhysicallyDown() {
+    return GetKeyState("LAlt", "P") || GetKeyState("RAlt", "P")
+}
+
+EnsureSyntheticAltDown() {
+    global syntheticAltDown
+
+    if (!syntheticAltDown) {
+        Send("{Blind}{Alt Down}")
+        syntheticAltDown := true
+    }
+}
+
+ReleaseSyntheticAlt() {
+    global syntheticAltDown
+
+    if (syntheticAltDown) {
+        Send("{Blind}{Alt Up}")
+        syntheticAltDown := false
+    }
+}
+
+AltTabHotkey(*) {
+    if (!IsAltPhysicallyDown()) {
+        return
+    }
+
+    CancelActiveShortcut()
+    EnsureSyntheticAltDown()
+    Send("{Tab}")
+}
+
+ShiftAltTabHotkey(*) {
+    if (!IsAltPhysicallyDown()) {
+        return
+    }
+
+    CancelActiveShortcut()
+    EnsureSyntheticAltDown()
+    Send("+{Tab}")
+}
+
+HandleAltRelease(*) {
+    CancelActiveShortcut()
+    ReleaseSyntheticModifiers()
+    ReleaseSyntheticAlt()
+}
+
+StartMappedShortcut() {
+    global shortcutSequence
+
+    shortcutSequence += 1
+    ReleaseSyntheticModifiers()
+    ReleaseSyntheticAlt()
+
+    context := { token: shortcutSequence, altWasDown: IsAltPhysicallyDown() }
+
+    if (context.altWasDown) {
+        Send("{Blind}{Alt Up}")
+    }
+
+    return context
+}
+
+FinishMappedShortcut(context) {
+    ReleaseSyntheticModifiers()
+    ReleaseSyntheticAlt()
+}
+
+WatchAltState() {
+    if (IsAltPhysicallyDown()) {
+        return
+    }
+
+    ReleaseSyntheticModifiers()
+    ReleaseSyntheticAlt()
+}
+
+IsShortcutCanceled(token) {
+    global shortcutSequence
+
+    return token != shortcutSequence
+}
+
+PressSyntheticCtrl(token) {
+    global syntheticCtrlDown
+
+    if (IsShortcutCanceled(token)) {
+        return false
+    }
+
+    if (!syntheticCtrlDown) {
+        Send("{Blind}{Ctrl Down}")
+        syntheticCtrlDown := true
+    }
+
+    return !IsShortcutCanceled(token)
+}
+
+PressSyntheticShift(token) {
+    global syntheticShiftDown
+
+    if (IsShortcutCanceled(token)) {
+        return false
+    }
+
+    if (!syntheticShiftDown) {
+        Send("{Blind}{Shift Down}")
+        syntheticShiftDown := true
+    }
+
+    return !IsShortcutCanceled(token)
+}
+
+ReleaseSyntheticCtrl() {
+    global syntheticCtrlDown
+
+    if (syntheticCtrlDown) {
+        Send("{Blind}{Ctrl Up}")
+        syntheticCtrlDown := false
+    }
+}
+
+ReleaseSyntheticShift() {
+    global syntheticShiftDown
+
+    if (syntheticShiftDown) {
+        Send("{Blind}{Shift Up}")
+        syntheticShiftDown := false
+    }
+}
+
+ReleaseSyntheticModifiers() {
+    ReleaseSyntheticShift()
+    ReleaseSyntheticCtrl()
+}
+
+SendKeyStep(token, keys) {
+    if (IsShortcutCanceled(token)) {
+        return false
+    }
+
+    Send(keys)
+
+    return !IsShortcutCanceled(token)
+}
+
+; 发送映射按键前，先临时释放 Alt，并把组合键拆成可中断的分步发送
+SendMappedKeys(keys, useCtrl := false, useShift := false) {
+    context := StartMappedShortcut()
+    token := context.token
+
+    try {
+        if (useCtrl && !PressSyntheticCtrl(token)) {
+            return
+        }
+
+        if (useShift && !PressSyntheticShift(token)) {
+            return
+        }
+
+        SendKeyStep(token, keys)
+    } finally {
+        FinishMappedShortcut(context)
+    }
 }
 
 ; 复制
 CopyHotkey(*) {
-    Send("{Ctrl Down}c{Ctrl Up}")
+    SendMappedKeys("c", true)
 }
 
 ; 剪切
 CutHotkey(*) {
-    Send("{Ctrl Down}x{Ctrl Up}")
+    SendMappedKeys("x", true)
 }
 
 ; 粘贴
 PasteHotkey(*) {
-    Send("{Ctrl Down}v{Ctrl Up}")
+    SendMappedKeys("v", true)
 }
 
 ; 特殊粘贴
 PasteSpecialHotkey(*) {
-    Send("{Ctrl Down}{Shift Down}v{Ctrl Up}{Shift Up}")
+    SendMappedKeys("v", true, true)
 }
 
 ; 全选
 SelectAllHotkey(*) {
-    Send("{Ctrl Down}a{Ctrl Up}")
+    SendMappedKeys("a", true)
 }
 
 ; 保存
 SaveHotkey(*) {
-    Send("{Ctrl Down}s{Ctrl Up}")
+    SendMappedKeys("s", true)
 }
 
 ; 关闭窗口
 CloseWindowHotkey(*) {
-    Send("{Ctrl Down}w{Ctrl Up}")
+    SendMappedKeys("w", true)
 }
 
 ; 撤销
 UndoHotkey(*) {
-    Send("{Ctrl Down}z{Ctrl Up}")
+    SendMappedKeys("z", true)
 }
 
 ; 重做
 RedoHotkey(*) {
-    Send("{Ctrl Down}{Shift Down}z{Ctrl Up}{Shift Up}")
+    SendMappedKeys("z", true, true)
 }
 
 ; 查找
 FindHotkey(*) {
-    Send("{Ctrl Down}f{Ctrl Up}")
+    SendMappedKeys("f", true)
 }
 
 ; 查找下一个
 FindNextHotkey(*) {
-    Send("{F3 Down}{F3 Up}")
+    SendMappedKeys("{F3}")
 }
 
 ; 查找上一个
 FindPrevHotkey(*) {
-    Send("{Shift Down}{F3 Down}{Shift Up}{F3 Up}")
+    context := StartMappedShortcut()
+    token := context.token
+
+    try {
+        ; 这里保留用户物理按下的 Shift，不再发送合成 Shift，
+        ; 这样按住 Alt+Shift 时可连续多次触发 g。
+        if (IsShortcutCanceled(token)) {
+            return
+        }
+        Send("{Blind}{F3}")
+    } finally {
+        FinishMappedShortcut(context)
+    }
 }
 
 ; 删除行
 DeleteLineHotkey(*) {
-    Send("+{Home}")
-    Sleep(10)
-    Send("{Delete}")
+    context := StartMappedShortcut()
+    token := context.token
+
+    try {
+        if (!PressSyntheticShift(token)) {
+            return
+        }
+
+        if (!SendKeyStep(token, "{Home}")) {
+            return
+        }
+
+        ReleaseSyntheticShift()
+
+        if (!SendKeyStep(token, "{Delete}")) {
+            return
+        }
+    } finally {
+        FinishMappedShortcut(context)
+    }
 }
 
 ; 新标签页
 NewTabHotkey(*) {
-    Send("{Ctrl Down}t{Ctrl Up}")
+    SendMappedKeys("t", true)
 }
 
 ; 重新打开标签页
 ReopenTabHotkey(*) {
-    Send("{Ctrl Down}{Shift Down}t{Ctrl Up}{Shift Up}")
+    SendMappedKeys("t", true, true)
 }
 
 ; 刷新
 ReloadHotkey(*) {
-    Send("{Ctrl Down}r{Ctrl Up}")
+    SendMappedKeys("r", true)
 }
 
 ; Home键
 HomeHotkey(*) {
-    Send("{Home}")
+    SendMappedKeys("{Home}")
 }
 
 ; End键
 EndHotkey(*) {
-    Send("{End}")
+    SendMappedKeys("{End}")
 }
 
 ; 选择到Home
 SelectToHomeHotkey(*) {
-    Send("+{Home}")
+    SendMappedKeys("{Home}", false, true)
 }
 
 ; 选择到End
 SelectToEndHotkey(*) {
-    Send("+{End}")
+    SendMappedKeys("{End}", false, true)
 }
 
 ; 启动实时窗口检查定时器（独立函数）
@@ -255,7 +437,7 @@ StopWindowMonitoring() {
 ; 从配置文件加载游戏进程列表
 LoadGameProcesses() {
     global lastConfigCheck, configCheckInterval, gameProcesses
-
+    
     ; 检查是否需要重新加载配置文件
     currentTime := A_TickCount
     if (currentTime - lastConfigCheck < configCheckInterval) {
@@ -271,14 +453,13 @@ LoadGameProcesses() {
     ; 获取KeyboardHook.ahk文件的完整路径
     scriptPath := A_LineFile  ; A_LineFile包含当前函数所在文件的完整路径
     SplitPath(scriptPath, , &scriptDir)  ; 提取文件所在目录
-    configPath := scriptDir . "\game_processes.ini"  ; 相对于KeyboardHook.ahk的路径
+    configPath := scriptDir . "\..\config\game_processes.ini"  ; 相对于KeyboardHook.ahk的路径
 
     OutputDebug("Loading game processes from: " . configPath)
 
     if (!FileExist(configPath)) {
         ; 如果配置文件不存在，使用默认列表
-        gameProcesses := ["BlackDesert64_CN.exe", "Cities2.exe", "Captain of Industry.exe", "inZOI-Win64-Shipping.exe",
-            "Factorio.exe"]
+        gameProcesses := ["BlackDesert64_CN.exe", "Cities2.exe", "Captain of Industry.exe", "inZOI-Win64-Shipping.exe", "Factorio.exe"]
         return gameProcesses
     }
 
@@ -286,7 +467,7 @@ LoadGameProcesses() {
     try {
         fileContent := FileRead(configPath)
         lines := StrSplit(fileContent, "`n", "`r")
-
+        
         for lineNum, line in lines {
             ; 跳过空行和注释行
             trimmedLine := Trim(line)
@@ -310,8 +491,7 @@ LoadGameProcesses() {
 
     ; 如果配置文件为空，使用默认列表
     if (gameProcesses.Length = 0) {
-        gameProcesses := ["BlackDesert64_CN.exe", "Cities2.exe", "Captain of Industry.exe", "inZOI-Win64-Shipping.exe",
-            "Factorio.exe"]
+        gameProcesses := ["BlackDesert64_CN.exe", "Cities2.exe", "Captain of Industry.exe", "inZOI-Win64-Shipping.exe", "Factorio.exe"]
     }
 
     return gameProcesses
@@ -321,7 +501,7 @@ LoadGameProcesses() {
 ; 配置文件版本
 CheckActiveWindowByProcess() {
     global lastProcessName, lastWindowState, gameProcessesObject
-
+    
     ; 获取当前游戏进程列表（带缓存）
     currentGameProcesses := LoadGameProcesses()
 

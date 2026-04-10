@@ -21,15 +21,14 @@
 
 */
 
-
-#Include KeyboardHookLib_v2.ahk
 #Include CapsLockLib_v2.ahk
+#Include KeyboardHookLib_v2.ahk
+
+; macOS风格CapsLock功能库 (AutoHotkey v2)
+InitMacOSCapsLock()
 
 ; 初始化键盘钩子功能
 InitKeyboardHook()
 ; 启动窗口监控
 StartWindowMonitoring()
-
-; macOS风格CapsLock功能库 (AutoHotkey v2)
-InitMacOSCapsLock()
 

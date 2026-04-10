@@ -186,6 +186,7 @@ if (A_IsCompiled) {
         "menu/bw-list.ahk",
         "menu/check-update.ahk",
         "menu/cursor-mode.ahk",
+        "menu/ignore-hotkey.ahk",
         "menu/input-method.ahk",
         "menu/other-config.ahk",
         "menu/scheme-cursor.ahk",
