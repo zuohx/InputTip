@@ -2,6 +2,14 @@
 
 # 版本更新日志
 
+## 2026.04.14
+
+- 在 `输入法相关` 中添加 `是否将输入法状态导出`
+  - 它会实时写入到 `%TEMP%\abgox.InputTip.State` 文件中
+  - 它会写入 `CN`、`EN`、`Caps`
+  - 这让其他脚本或程序和 InputTip 集成变得更加容易，例如 [InputTip for VSCode](https://inputtip.abgox.com/faq/inputtip-for-vscode)
+- 其他的修复和优化
+
 ## 2026.04.01
 
 - 在 `其他设置` 中添加 `指定窗口忽略状态切换快捷键`

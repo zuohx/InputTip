@@ -28,8 +28,6 @@ gc := {
     }
 }
 
-userName := readIni("userName", A_UserName, "UserInfo")
-
 ; 输入法模式
 mode := readIni("mode", 1, "InputMethod")
 
@@ -93,6 +91,11 @@ symbolShowMode := readIni("symbolShowMode", 1)
 
 ; 是否保持大写锁定状态
 keepCapsLock := readIni("keepCapsLock", 0)
+
+; 是否将输入法状态导出
+exportState := readIni("exportState", 0)
+
+exportStateFile := A_Temp "\abgox.InputTip.State"
 
 ; 轮询响应间隔
 delay := readIni("delay", 20)
