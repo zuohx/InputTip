@@ -41,8 +41,6 @@ if (A_IsCompiled) {
     }
 }
 
-checkUpdateDone()
-
 checkIni()
 
 checkUpdate(1)
