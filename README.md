@@ -247,7 +247,6 @@
 |工具|来源|描述|链接|
 |-|-|-|-|
 |[InputTip for VSCode](https://inputtip.abgox.com/faq/inputtip-for-vscode)|`官方`|一个 vscode 插件，实时修改光标、边框等颜色以提示输入法状态|[Github](https://github.com/abgox/InputTip-for-VSCode), [VSCode 插件市场](https://marketplace.visualstudio.com/items?itemName=abgox.inputtip)|
-|...|...&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|...|...|
 
 <!-- prettier-ignore-end -->
 

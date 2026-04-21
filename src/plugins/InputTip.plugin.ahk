@@ -29,6 +29,3 @@ InitMacOSCapsLock()
 
 ; 初始化键盘钩子功能
 InitKeyboardHook()
-; 启动窗口监控
-StartWindowMonitoring()
-

@@ -244,7 +244,7 @@ SelectToEndHotkey(*) {
 
 ; 启动实时窗口检查定时器（独立函数）
 StartWindowMonitoring() {
-    SetTimer(CheckActiveWindowByProcess, 500)  ; 每500毫秒检查一次当前窗口进程
+    SetTimer(CheckActiveWindowByProcess, 10000)  ; 每500毫秒检查一次当前窗口进程
 }
 
 ; 停止实时窗口检查定时器（独立函数）
@@ -255,7 +255,7 @@ StopWindowMonitoring() {
 ; 从配置文件加载游戏进程列表
 LoadGameProcesses() {
     global lastConfigCheck, configCheckInterval, gameProcesses
-
+    
     ; 检查是否需要重新加载配置文件
     currentTime := A_TickCount
     if (currentTime - lastConfigCheck < configCheckInterval) {
@@ -277,8 +277,7 @@ LoadGameProcesses() {
 
     if (!FileExist(configPath)) {
         ; 如果配置文件不存在，使用默认列表
-        gameProcesses := ["BlackDesert64_CN.exe", "Cities2.exe", "Captain of Industry.exe", "inZOI-Win64-Shipping.exe",
-            "Factorio.exe"]
+        gameProcesses := ["BlackDesert64_CN.exe", "Cities2.exe", "Captain of Industry.exe", "inZOI-Win64-Shipping.exe", "Factorio.exe"]
         return gameProcesses
     }
 
@@ -286,7 +285,7 @@ LoadGameProcesses() {
     try {
         fileContent := FileRead(configPath)
         lines := StrSplit(fileContent, "`n", "`r")
-
+        
         for lineNum, line in lines {
             ; 跳过空行和注释行
             trimmedLine := Trim(line)
@@ -310,8 +309,7 @@ LoadGameProcesses() {
 
     ; 如果配置文件为空，使用默认列表
     if (gameProcesses.Length = 0) {
-        gameProcesses := ["BlackDesert64_CN.exe", "Cities2.exe", "Captain of Industry.exe", "inZOI-Win64-Shipping.exe",
-            "Factorio.exe"]
+        gameProcesses := ["BlackDesert64_CN.exe", "Cities2.exe", "Captain of Industry.exe", "inZOI-Win64-Shipping.exe", "Factorio.exe"]
     }
 
     return gameProcesses
@@ -321,7 +319,7 @@ LoadGameProcesses() {
 ; 配置文件版本
 CheckActiveWindowByProcess() {
     global lastProcessName, lastWindowState, gameProcessesObject
-
+    
     ; 获取当前游戏进程列表（带缓存）
     currentGameProcesses := LoadGameProcesses()
 

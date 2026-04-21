@@ -3,7 +3,7 @@
 #SingleInstance Force
 
 ; 声明全局变量
-LongPressThreshold := 300
+LongPressThreshold := 1100
 CapsLockPressed := false
 CapsLockStartTime := 0
 
@@ -32,8 +32,13 @@ CapsLockHandler(*) {
     PressDuration := A_TickCount - CapsLockStartTime
 
     if (PressDuration < LongPressThreshold) {
-        SendInput("{Ctrl down}{Shift down}{Shift up}")
-        SendInput("{Ctrl up}")
+        ; 等待 CapsLock 完全释放，避免按键残留干扰
+        Sleep(30)
+        ; SendEvent 使用 keybd_event API，更接近真实按键，输入法识别率最高
+        ; SendInput/Send 属于软件注入，部分输入法的 WH_KEYBOARD_LL 钩子不响应
+        SetKeyDelay(30, 50)  ; 按键间隔30ms，按住持续50ms
+        SendEvent("{Ctrl down}{Shift down}{Shift up}{Ctrl up}")
+        SetKeyDelay(-1, -1)
     } else {
         SetCapsLockState(GetKeyState("CapsLock", "T") ? "Off" : "On")
     }
