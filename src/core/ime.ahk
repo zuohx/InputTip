@@ -1,7 +1,8 @@
 ; InputTip
 
 /**
- * @link https://github.com/Tebayaki/AutoHotkeyScripts/blob/main/lib/IME.ahk
+ * - 源自于 [AutoHotkeyScripts/IME](https://github.com/Tebayaki/AutoHotkeyScripts/blob/main/lib/IME.ahk)
+ * - 为了适配 InputTip，进行了大量的改进与优化
  * @example
  * var.inputMethodDetectionTimeout := 200 ; 超时时间(单位：毫秒)
  * var.inputMethodDetectionRules := [] ; 状态规则
@@ -15,31 +16,38 @@ class IME {
         "KR", { langId: 0x12, klid: 0x0412, convMode: 0 },
     )
 
+    static GeneralStrategy := {
+        strategy: 0, ; 0(复合兜底) 1(纯状态码) 2(纯转换码)
+        lastChangedTime: 0,
+        pendingState: "",
+        lastHwnd: 0,
+        lastOpened: -1,
+        lastConvMode: -1,
+        isNonBinaryIME: 0,
+        cnValue: 0,
+        enValue: 0,
+        pendingNonBinary: 0,
+        nonBinaryTime: 0,
+        hwndChangedTime: 0,
+        isHwndInitPending: 0,
+    }
+
     /**
-     * 获取当前输入法输入模式
+     * 获取当前输入法状态(CN/EN/Caps)或键盘布局(US/JP/KR)
      * @returns {"CN"|"EN"|"Caps"|"US"|"JP"|"KR"}
-     * - "CN": 中文输入法的中文模式
-     * - "EN": 中文输入法的英文模式
-     * - "Caps": 大写锁定激活状态
-     * - "US": 英文键盘布局（如美式键盘）
-     * - "JP": 日文键盘
-     * - "KR": 韩文键盘
-     */
+      */
     static GetInputModeText(hwnd := this.GetFocusedWindow()) {
         static lastState := "EN"
-        if GetKeyState("CapsLock", "T") {
-            lastState := "Caps"
-            return "Caps"
-        }
+        if GetKeyState("CapsLock", "T")
+            return lastState := "Caps"
+
         try {
             langID := this.GetKeyboardLayout(hwnd) & 0xFF
             for state, info in this.LangMap {
                 if langID == info.langId {
                     ; CN 需要走后续状态判断
-                    if state != "CN" {
-                        lastState := state
-                        return state
-                    }
+                    if state != "CN"
+                        return lastState := state
                     break
                 }
             }
@@ -47,67 +55,116 @@ class IME {
             opened := this.GetOpenStatus(hwnd)
             convMode := this.GetConversionMode(hwnd)
 
+            if var.inputMethodDetectionMode == "general" || !var.inputMethodDetectionRules.Length {
+                gs := this.GeneralStrategy
+                state := lastState
+                if gs.lastHwnd != hwnd || hasTitleChange || hasClassChange || hasProcessChange {
+                    gs.lastHwnd := hwnd
+                    gs.hwndChangedTime := A_TickCount
+                    gs.isHwndInitPending := 1
 
-            if var.inputMethodDetectionMode == "general" {
-                static lastOpened := -1
-                static lastConvMode := -1
-                static strategy := 0 ; 0 = 标准复合兜底, 1 = 纯状态码, 2 = 纯转换码
+                    gs.pendingState := ""
+                    gs.lastChangedTime := 0
+                    gs.pendingNonBinary := 0
+                    gs.nonBinaryTime := 0
 
-                static isNonBinaryIME := 0 ; 非二元状态输入法标识
-                static cnValue := 0
-                static enValue := 0
-
-                if lastOpened == -1 || lastConvMode == -1 {
-                    lastOpened := opened
-                    lastConvMode := convMode
+                    goto SKIP_STRATEGY_LEARNING
                 }
-                else if opened != lastOpened || convMode != lastConvMode {
-                    openedChanged := opened != lastOpened
-                    convModeChanged := convMode != lastConvMode
+                if gs.isHwndInitPending {
+                    if A_TickCount - gs.hwndChangedTime < 200
+                        goto SKIP_STRATEGY_LEARNING
 
-                    if !openedChanged && convModeChanged {
-                        strategy := 2
-                        isNonBinaryIME := 0
-                    }
-                    else if openedChanged && !convModeChanged {
-                        strategy := 1
-                        if isNonBinaryIME && (strategy == 2 || opened < 1)
-                            isNonBinaryIME := 0
-                        if opened != lastOpened && (opened > 1 || lastOpened > 1)
-                            isNonBinaryIME := 1, cnValue := Max(opened, lastOpened), enValue := Min(opened, lastOpened)
-                    }
-                    else if openedChanged && convModeChanged {
-                        strategy := 0
-                        isNonBinaryIME := 0
-                    }
-
-                    lastOpened := opened
-                    lastConvMode := convMode
+                    gs.lastOpened := opened
+                    gs.lastConvMode := convMode
+                    gs.isHwndInitPending := 0
                 }
 
-                switch strategy {
+                openedChanged := opened != gs.lastOpened
+                convModeChanged := convMode != gs.lastConvMode
+
+                if openedChanged || convModeChanged {
+                    currentFeature := opened "," convMode
+                    if gs.pendingState != currentFeature {
+                        gs.pendingState := currentFeature
+                        gs.lastChangedTime := A_TickCount
+                        goto SKIP_STRATEGY_LEARNING
+                    } else if A_TickCount - gs.lastChangedTime < 200 {
+                        goto SKIP_STRATEGY_LEARNING
+                    }
+
+                    if convModeChanged {
+                        if gs.strategy == 1 && gs.isNonBinaryIME {
+                            gs.isNonBinaryIME := 0
+                            gs.cnValue := 0
+                            gs.enValue := 0
+                            gs.pendingNonBinary := 0
+                            gs.nonBinaryTime := 0
+                        }
+                        gs.strategy := 2
+                    }
+                    else if openedChanged {
+                        if gs.strategy == 2 && gs.isNonBinaryIME
+                            gs.isNonBinaryIME := 0
+                        gs.strategy := 1
+                        if opened > 1 {
+                            if gs.pendingNonBinary != opened {
+                                gs.pendingNonBinary := opened
+                                gs.nonBinaryTime := A_TickCount
+                                goto SKIP_STRATEGY_LEARNING
+                            } else {
+                                if A_TickCount - gs.nonBinaryTime < 200 {
+                                    goto SKIP_STRATEGY_LEARNING
+                                } else {
+                                    gs.isNonBinaryIME := 1
+                                    gs.cnValue := opened
+                                    gs.enValue := (gs.lastOpened == -1 || gs.lastOpened > 1) ? 0 : gs.lastOpened
+                                    gs.pendingNonBinary := 0
+                                    gs.nonBinaryTime := 0
+                                }
+                            }
+                        } else {
+                            if gs.lastOpened >= 0 && gs.lastOpened <= 1 {
+                                if gs.isNonBinaryIME {
+                                    gs.isNonBinaryIME := 0
+                                    gs.cnValue := 0
+                                    gs.enValue := 0
+                                    gs.pendingNonBinary := 0
+                                    gs.nonBinaryTime := 0
+                                }
+                            } else {
+                                gs.pendingNonBinary := 0
+                                gs.nonBinaryTime := 0
+                            }
+                        }
+                    }
+                    gs.lastOpened := opened
+                    gs.lastConvMode := convMode
+                    gs.pendingState := ""
+                    gs.lastChangedTime := 0
+                } else {
+                    gs.pendingState := ""
+                    gs.lastChangedTime := 0
+                }
+
+                SKIP_STRATEGY_LEARNING:
+                if gs.isHwndInitPending
+                    return lastState
+                switch gs.strategy {
                     case 1:
-                        if isNonBinaryIME
-                            state := opened == cnValue ? "CN" : "EN"
-                        else
-                            state := opened ? "CN" : "EN"
-
+                        state := gs.isNonBinaryIME ? (opened == gs.cnValue ? "CN" : "EN") : (opened ? "CN" : "EN")
                     case 2:
                         state := convMode & 1 ? "CN" : "EN"
-
                     default:
-                        if isNonBinaryIME {
-                            state := opened == cnValue ? "CN" : "EN"
-                        }
-                        else if convMode & 1 {
+                        if gs.isNonBinaryIME
+                            state := opened == gs.cnValue ? "CN" : "EN"
+                        else if convMode == 0
+                            state := opened ? "CN" : "EN"
+                        else if opened == 0
+                            state := "EN"
+                        else if convMode & 1
                             state := "CN"
-                        }
-                        else {
-                            if (opened == 0) || (opened == 1 && (convMode == 0 || convMode == 1))
-                                state := "EN"
-                            else
-                                state := opened ? "CN" : "EN"
-                        }
+                        else
+                            state := "EN"
                 }
                 lastState := state
                 return state
@@ -117,7 +174,7 @@ class IME {
 
             for v in var.inputMethodDetectionRules {
                 r := StrSplit(v, ",")
-                if matchRule(opened, r[1]) && matchRule(convMode, r[2]) {
+                if this.MatchRule(opened, r[1]) && this.MatchRule(convMode, r[2]) {
                     state := r[3]
                     break
                 }
@@ -127,47 +184,82 @@ class IME {
         } catch {
             return lastState
         }
-
-        matchRule(value, ruleValue) {
-            if ruleValue == ""
-                return 1
-            switch ruleValue {
-                case "evenNum": isMatch := !(value & 1)
-                case "oddNum": isMatch := value & 1
-                default: isMatch := InStr("/" ruleValue "/", "/" value "/")
-            }
-            return isMatch
-        }
     }
 
     static CheckInputMode(hwnd := this.GetFocusedWindow()) {
         return {
-            stateMode: this.GetOpenStatus(hwnd),
+            openStatus: this.GetOpenStatus(hwnd),
             conversionMode: this.GetConversionMode(hwnd)
         }
     }
 
     /**
-     * 切换到指定的输入法状态/布局
+     * 切换到指定的输入法状态(CN/EN)或键盘布局(US/JP/KR)
      * @param {"CN"|"EN"|"US"|"JP"|"KR"} targetState
+     * @param {0|1} active
      */
-    static SetInputMode(targetState, hwnd := this.GetFocusedWindow()) {
-        if targetState == "US" || targetState == "JP" || targetState == "KR" {
-            this.SwitchKeyboard(targetState)
-            if targetState != "US"
-                Sleep(50), this.SetOpenStatus(true, hwnd)
-            return
+    static SetInputMode(targetState, opened := "", conversionMode := "", hwnd := this.GetFocusedWindow()) {
+        switch targetState {
+            case "US":
+                this.SwitchKeyboard(targetState)
+                return
+            case "JP", "KR":
+                this.SwitchKeyboard(targetState)
+                if opened !== "" || conversionMode !== "" {
+                    Sleep(50)
+                    if opened !== ""
+                        this.SetOpenStatus(opened, hwnd)
+                    if conversionMode !== ""
+                        this.SetConversionMode(conversionMode, hwnd)
+                }
+                return
         }
         this.SwitchKeyboard("CN")
-        switch targetState {
-            case "CN": this.SetOpenStatus(true, hwnd), this.SetConversionMode(this.LangMap["CN"].convMode, hwnd)
-            case "EN": this.SetOpenStatus(false, hwnd)
+
+        if var.inputMethodDetectionMode != "general" {
+            switch targetState {
+                case "CN": this.SetOpenStatus(true, hwnd), this.SetConversionMode(this.LangMap["CN"].convMode, hwnd)
+                case "EN": this.SetOpenStatus(false, hwnd)
+            }
+            return
         }
+
+        ; CN/EN
+        gs := this.GeneralStrategy
+        switch gs.strategy {
+            case 1:
+                if targetState == "CN"
+                    s := gs.isNonBinaryIME ? gs.cnValue : 1
+                else
+                    s := gs.isNonBinaryIME ? gs.enValue : 0
+                this.SetOpenStatus(s, hwnd)
+            case 2:
+                this.SetConversionMode(targetState == "CN" ? this.LangMap["CN"].convMode : 0, hwnd)
+            default:
+                if gs.isNonBinaryIME {
+                    this.SetOpenStatus(targetState == "CN" ? gs.cnValue : gs.enValue, hwnd)
+                } else {
+                    if targetState == "CN"
+                        this.SetOpenStatus(true, hwnd), this.SetConversionMode(this.LangMap["CN"].convMode, hwnd)
+                    else
+                        this.SetOpenStatus(false, hwnd), this.SetConversionMode(0, hwnd)
+                }
+        }
+
+        Sleep(20)
+        gs.lastOpened := this.GetOpenStatus(hwnd)
+        gs.lastConvMode := this.GetConversionMode(hwnd)
     }
 
-    static ToggleInputMode(hwnd := this.GetFocusedWindow()) {
-        current := this.GetInputModeText(hwnd)
-        this.SetInputMode((current == "US" || current == "EN") ? "CN" : "EN", hwnd)
+    static MatchRule(value, rule) {
+        if rule == ""
+            return 1
+        switch rule {
+            case "evenNum": isMatch := !(value & 1)
+            case "oddNum": isMatch := value & 1
+            default: isMatch := InStr("/" rule "/", "/" value "/")
+        }
+        return isMatch
     }
 
     static GetOpenStatus(hwnd := this.GetFocusedWindow()) {
@@ -201,7 +293,12 @@ class IME {
     }
 
     static SetKeyboardLayout(hkl, hwnd := this.GetFocusedWindow()) {
-        try SendMessage(0x50, 1, hkl, hwnd)
+        try {
+            SendMessage(0x50, 1, hkl, hwnd)
+            return 1
+        } catch {
+            return 0
+        }
     }
 
     static GetKeyboardLayoutList() {
@@ -225,7 +322,7 @@ class IME {
     /**
      * 切换到指定的语言输入法布局
      * @param {"CN"|"US"|"JP"|"KR"} state
-     */
+      */
     static SwitchKeyboard(state) {
         if !this.LangMap.Has(state)
             return false
@@ -233,18 +330,12 @@ class IME {
         hwnd := this.GetFocusedWindow()
         if !hwnd
             return false
-
         for hkl in this.GetKeyboardLayoutList() {
-            if (hkl & 0xFF) == info.langId {
-                this.SetKeyboardLayout(hkl, hwnd)
-                return true
-            }
+            if (hkl & 0xFF) == info.langId
+                return this.SetKeyboardLayout(hkl, hwnd)
         }
-        hkl := this.LoadKeyboardLayout(info.klid)
-        if hkl {
-            this.SetKeyboardLayout(hkl, hwnd)
-            return true
-        }
+        if hkl := this.LoadKeyboardLayout(info.klid)
+            return this.SetKeyboardLayout(hkl, hwnd)
         return false
     }
 
@@ -264,14 +355,15 @@ class IME {
 /**
  * 切换键盘布局
  * @param {"CN"|"US"|"JP"|"KR"} state 要切换的键盘布局
- * @param ignoreKeepCaps
+ * @param {""|0|1} active
+ * @param {0|1} ignoreKeepCaps
  */
-switchKeyboard(state, ignoreKeepCaps := 0) {
-    if matchWindowRules(exeName, exeTitle, exeClass, var.WindowRule["ignoreKeyboardSwitch"]).Length
+switchKeyboard(state, opened := "", conversionMode := "", ignoreKeepCaps := 0) {
+    if matchWindowRules(var.WindowRule["ignoreKeyboardSwitch"]).Length
         return 0
     if !ignoreKeepCaps && IME.GetInputModeText() == "Caps" && !var.keepCapsLockWhenKeyboardSwitch
         SendInput("{CapsLock}")
-    return IME.SwitchKeyboard(state)
+    return opened != "" || conversionMode != "" ? IME.SetInputMode(state, opened, conversionMode) : IME.SwitchKeyboard(state)
 }
 
 /**
@@ -280,48 +372,33 @@ switchKeyboard(state, ignoreKeepCaps := 0) {
  * @param {"{LShift}"|"{RShift}"|"{Ctrl Down}{Space Down}{Ctrl Up}{Space Up}"|"IME"} method  切换方式(模拟按键/IME)
  */
 switchState(state, method) {
-    if !state
+    if !state || matchWindowRules(var.WindowRule["ignoreStateSwitch"]).Length
         return
-
-    if matchWindowRules(exeName, exeTitle, exeClass, var.WindowRule["ignoreStateSwitch"]).Length
-        return
-
     SetTimer(onRun, 50)
     onRun() {
-        static modifiers := ["Ctrl", "Alt", "Shift", "LWin", "RWin", "Shift"]
+        static modifiers := ["Ctrl", "Alt", "Shift", "LWin", "RWin"]
         for mod in modifiers {
             if GetKeyState(mod, "P")
                 return
         }
-        if GetKeyState("LButton", "P") || GetKeyState("RButton", "P")
+        if IME.GeneralStrategy.isHwndInitPending || GetKeyState("LButton", "P") || GetKeyState("RButton", "P")
             return
-
         SetTimer(onRun, 0)
         stateText := IME.GetInputModeText()
-        if !stateText
+        if !stateText || state == stateText
             return
-
-        if state == stateText
-            return
-
         if stateText == "Caps" {
             if var.keepCapsLockWhenStateSwitch
                 return
-
             SendInput("{CapsLock}")
             Sleep(50)
             stateText := IME.GetInputModeText()
-            if !stateText
+            if !stateText || state == stateText
                 return
-
-            if state == stateText
-                return
-
         } else if state == "Caps" {
             SendInput("{CapsLock}")
             return
         }
-
         if method == "IME"
             IME.SetInputMode(state)
         else

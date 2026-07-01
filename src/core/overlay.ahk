@@ -5,7 +5,7 @@ updateOverlay()
 hideOverlay() {
     for v in stateList {
         i := var.screenNum
-        while (i > 0) {
+        while i > 0 {
             try var.%"overlayGui" v i%.Hide()
             i--
         }
@@ -34,7 +34,7 @@ showOverlay(state) {
 
     try {
         i := var.screenNum
-        while (i > 0) {
+        while i > 0 {
             g := var.%"overlayGui" state i%
             screen := var.screenList[i]
 
@@ -154,7 +154,7 @@ updateOverlay() {
         bgColor := var.%"overlayBgColor" state%
 
         i := var.screenNum
-        while (i > 0) {
+        while i > 0 {
             var.%"overlayGui" state i% := createUniqueGui(tipGui.Bind(state, i), var.overlayCornerPreference)
             tipGui(state, num, info) {
                 g := createGuiOpt("overlayGui" state num, , "-Caption AlwaysOnTop ToolWindow E0x20", , 0)
@@ -164,9 +164,9 @@ updateOverlay() {
                     g.BackColor := bgColor
                     g.AddText("c" textColor, text)
                 }
-                if (info.i) {
+                if info.i
                     return g
-                }
+
                 switch var.overlayEdgeStyle {
                     case 1: g.Opt("e0x00000001")
                     case 2: g.Opt("e0x00000200")
@@ -185,7 +185,7 @@ e_overlay(*) {
     overlayStyleGui(info) {
         g := createGuiOpt(i18n("overlay"))
 
-        if (info.i) {
+        if info.i {
             g.AddText(, isChinese ? line80 : line90)
             return g
         }
@@ -203,22 +203,10 @@ e_overlay(*) {
             ["no", 0, (key, value, *) => (changeConfig(key, value), disableCtrl(ctrlList))]
         ])
 
+        _ := renderRadioGroup(g, "overlayOnlyFocusScreen", [["yes", 1], ["no", 0]])
+        ctrlList.Push(_.radios*)
         _ := renderEditGroup(g, "overlayHideDelay", "Number Limit5")
         ctrlList.Push(_.edit)
-        renderGroupBox(g, "overlayReshowOnChange", , "h110 w" bw)
-        g.AddCheckbox("xs+20 yp+50 Disabled", i18n("overlayReshowOnChange.state")).Value := 1
-        for v in ["Process", "Title", "Class"] {
-            _ := g.AddCheckbox("yp", i18n("overlayReshowOnChange." StrLower(v)))
-            _.Value := var.%"overlayReshowOn" v "Change"%
-            _.OnEvent("Click", e_change.Bind(v))
-            ctrlList.Push(_)
-        }
-        e_change(type, ctrl, *) {
-            key := "overlayReshowOn" type "Change"
-            val := ctrl.Value
-            var.%key% := val
-            writeIni(key, val)
-        }
 
         _ := renderRadioGroup(g, "overlayShowMode",
             [
@@ -248,8 +236,30 @@ e_overlay(*) {
 
         tab.UseTab(2)
         g.AddLink("Section", getDocsLink("tip/overlay"))
-        _ := renderRadioGroup(g, "overlayOnlyFocusScreen", [["yes", 1], ["no", 0]])
-        ctrlList.Push(_.radios*)
+
+        renderGroupBox(g, "overlayReshowOnChange", , "h" uicText.h " w" bw)
+        g.AddCheckbox("xs+20 yp+" uicText.yp " Disabled", i18n("overlayReshowOnChange.state")).Value := 1
+        for v in ["Process", "Title", "Class"] {
+            _ := g.AddCheckbox("yp", i18n("overlayReshowOnChange." StrLower(v)))
+            key := "overlayReshowOn" v "Change"
+            _.Value := var.%key%
+            _.OnEvent("Click", e_change.Bind(key))
+            ctrlList.Push(_)
+        }
+        e_change(key, ctrl, *) {
+            val := ctrl.Value
+            var.%key% := val
+            writeIni(key, val)
+        }
+        renderGroupBox(g, "showOnWindowState", , "h" uicText.h " w" bw)
+        for i, v in ["Normal", "Maximized", "Fullscreen"] {
+            _ := g.AddCheckbox(i == 1 ? "xs+20 yp+" uicText.yp : "yp", i18n("showOnWindowState." StrLower(v)))
+            key := "overlayShowOn" v
+            _.Value := var.%key%
+            _.OnEvent("Click", e_change.Bind(key))
+            ctrlList.Push(_)
+        }
+
         _ := renderRadioGroup(g, "overlayAnimation",
             [
                 ["none", 0],
@@ -290,10 +300,12 @@ e_overlay(*) {
         for i, v in stateList {
             if Mod(i - 1, 2) == 0 {
                 tab.UseTab(((i - 1) // 2) + 3)
-                g.AddLink("Section", getDocsLink("tip/overlay"))
+                opt := "Section"
+            } else {
+                opt := "xs"
             }
 
-            renderGroupBox(g, v, , "h280 w" bw)
+            renderGroupBox(g, v, opt, "Section h" uicDDL.h * 2.5 " w" bw)
             _ := renderEditLabel(g, "overlayText" v, "w" bw / 3, "overlayText")
             ctrlList.Push(_.edit)
             _ := renderEditLabel(g, "overlayOffsetX" v, "Limit5 w" bw / 10, "overlayOffsetX", "yp")
@@ -301,7 +313,7 @@ e_overlay(*) {
             _ := renderColorPicker(g, "overlayTextColor" v, "overlayTextColor")
             ctrlList.Push(_.picker)
 
-            g.AddText("xs+20 yp+55", i18n("overlayBasePosition"))
+            g.AddText("xs+20 yp+" uicDDL.yp, i18n("overlayBasePosition"))
             _ := g.AddDropDownList("yp r9 w" bw / 3, posList)
             try _.Text := posValueMap.Get(var.%"overlayBasePosition" v%)
             _.state := v
@@ -314,10 +326,10 @@ e_overlay(*) {
             _ := renderColorPicker(g, "overlayBgColor" v, "overlayBgColor")
             ctrlList.Push(_.picker)
 
-            renderText(g, "overlayTextFont", "xs+20 yp+55", "")
+            renderText(g, "overlayTextFont", "xs+20 yp+" uicDDL.yp, "")
             _ := renderDropDownList(g, "overlayTextFont" v, fontList, "yp", "w" bw / 1.2)
             ctrlList.Push(_)
-            _ := renderEditLabel(g, "overlayTextSize" v, "Number Limit2 w" bw / 3, "overlayTextSize", "xs+20 yp+55")
+            _ := renderEditLabel(g, "overlayTextSize" v, "Number Limit2 w" bw / 3, "overlayTextSize", "xs+20 yp+" uicEdit.yp)
             ctrlList.Push(_.edit)
             _ := renderEditLabel(g, "overlayTextWeight" v, "Number Limit3 w" bw / 10, "overlayTextWeight", "yp")
             ctrlList.Push(_.edit)

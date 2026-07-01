@@ -3,12 +3,9 @@
 for k, v in var.cursorInfo {
     o := ""
     try o := replaceEnvVariables(RegRead("HKEY_CURRENT_USER\Control Panel\Cursors", k))
-    if (!o) {
+    if !o
         o := "C:\Windows\Cursors\" v[2]
-    }
-    if (o) {
-        var.cursorInfo[k] := { id: v[1], origin: o }
-    }
+    var.cursorInfo[k] := { id: v[1], origin: o }
 }
 
 updateCursor()
@@ -26,7 +23,7 @@ updateCursor() {
         path := "default-" stateVal.%state%.colorText
         dir := readIni("cursorPath" state, path)
         var.%"cursorPath" state% := dir
-        if (dir) {
+        if dir {
             if defaultCursor.Has(dir) {
                 loopDir := defaultCursorDir "\" dir
             } else {
@@ -39,14 +36,13 @@ updateCursor() {
                 }
             }
             Loop Files loopDir "\*.*" {
-                n := SubStr(A_LoopFileName, 1, StrLen(A_LoopFileName) - 4)
+                n := StrUpper(SubStr(A_LoopFileName, 1, StrLen(A_LoopFileName) - 4))
                 if var.cursorInfo.Has(n)
                     var.cursorInfo[n].%state% := A_LoopFileFullPath
             }
         } else {
-            for k, v in var.cursorInfo {
+            for k, v in var.cursorInfo
                 v.%state% := v.origin
-            }
         }
     }
 }
@@ -56,23 +52,18 @@ loadCursor(state, change := 0) {
     if !var.cursorActive || (state == lastCursor && !change)
         return
     if var.loadOnlyIBeamCursor {
-        if p := var.cursorInfo.Get("IBeam").%state%
+        if p := var.cursorInfo.Get("IBEAM").%state%
             DllCall("SetSystemCursor", "Ptr", DllCall("LoadCursorFromFile", "Str", p, "Ptr"), "Int", "32513")
     } else {
         for k, v in var.cursorInfo
-            try v.%state% ? DllCall("SetSystemCursor", "Ptr", DllCall("LoadCursorFromFile", "Str", v.%state%, "Ptr"), "Int", v.id) : ""
+            try (v.%state% ? DllCall("SetSystemCursor", "Ptr", DllCall("LoadCursorFromFile", "Str", v.%state%, "Ptr"), "Int", v.id) : "")
     }
     lastCursor := state
 }
 
 revertCursor() {
-    for k, v in var.cursorInfo {
-        try {
-            if (v.origin) {
-                DllCall("SetSystemCursor", "Ptr", DllCall("LoadCursorFromFile", "Str", v.origin, "Ptr"), "Int", v.id)
-            }
-        }
-    }
+    for k, v in var.cursorInfo
+        try (v.origin ? DllCall("SetSystemCursor", "Ptr", DllCall("LoadCursorFromFile", "Str", v.origin, "Ptr"), "Int", v.id) : "")
 }
 
 getCursorPath() {
@@ -94,10 +85,8 @@ getCursorPath() {
     list := []
     for state in stateList {
         path := "default-" stateVal.%state%.colorText
-        if listMap.Has(path) {
-            list.Push(path)
-            listMap.Delete(path)
-        }
+        if listMap.Has(path)
+            list.Push(path), listMap.Delete(path)
     }
     for path in listMap
         list.Push(path)
@@ -111,7 +100,7 @@ e_cursor(*) {
     cursorStyleGui(info) {
         g := createGuiOpt(i18n("cursor"))
 
-        if (info.i) {
+        if info.i {
             g.AddText(, line80)
             return g
         }

@@ -14,12 +14,7 @@ updateSymbol(prefix) {
                 w := var.%prefix "SymbolPictureWidth" state%
                 h := var.%prefix "SymbolPictureHeight" state%
                 path := var.%prefix "SymbolPicturePath" state%
-                if (defaultSymbolMap.Has(path)) {
-                    path := defaultSymbolDir "\" path
-                } else {
-                    path := symbolDir "\" path
-                }
-                if (path) {
+                if path := defaultSymbolMap.Has(path) ? defaultSymbolDir "\" path : symbolDir "\" path {
                     var.%key% := _ := createUniqueGui(symbolGui.Bind(key))
                     _.BackColor := "010101"
                     WinSetTransColor("010101", _.Hwnd)
@@ -31,8 +26,7 @@ updateSymbol(prefix) {
         case 2:
             for state in stateList {
                 key := prefix "SymbolShapeGui" state
-                color := var.%prefix "SymbolShapeColor" state%
-                if (color) {
+                if color := var.%prefix "SymbolShapeColor" state% {
                     var.%key% := _ := createUniqueGui(symbolGui.Bind(key), var.%prefix "SymbolShapeCornerPreference"%)
                     try _.BackColor := color
                     switch var.%prefix "SymbolShapeEdgeStyle"% {
@@ -47,13 +41,12 @@ updateSymbol(prefix) {
         case 3:
             for state in stateList {
                 key := prefix "SymbolTextGui" state
-                text := var.%prefix "SymbolTextContent" state%
                 textFont := var.%prefix "SymbolTextFont" state%
                 textSize := var.%prefix "SymbolTextSize" state%
                 textWeight := var.%prefix "SymbolTextWeight" state%
                 textColor := var.%prefix "SymbolTextColor" state%
                 bgColor := var.%prefix "SymbolTextBgColor" state%
-                if (text) {
+                if text := var.%prefix "SymbolTextContent" state% {
                     var.%key% := _ := createUniqueGui(symbolGui.Bind(key), var.%prefix "SymbolTextCornerPreference"%)
                     _.MarginX := 0, _.MarginY := 0
                     try {
@@ -131,28 +124,22 @@ showCaretSymbol(state, left, top, right, bottom) {
             x := toPhysical(var.%"caretSymbolPictureOffsetX" state%, scale)
             y := toPhysical(var.%"caretSymbolPictureOffsetY" state%, scale)
             g := var.%"caretSymbolPictureGui" state%
-            try {
-                showGui(g, "NA", 0, 1)
-                setGuiPhysicalPos(g.Hwnd, left + x, offsetY + y)
-            }
+            showGui(g, "NA", 0, 1, "")
+            setGuiPhysicalPos(g.Hwnd, left + x, offsetY + y)
         case 2:
             x := toPhysical(var.%"caretSymbolShapeOffsetX" state%, scale)
             y := toPhysical(var.%"caretSymbolShapeOffsetY" state%, scale)
             w := toPhysical(var.%"caretSymbolShapeWidth" state%, scale)
             h := toPhysical(var.%"caretSymbolShapeHeight" state%, scale)
             g := var.%"caretSymbolShapeGui" state%
-            try {
-                showGui(g, "NA", 0, 1, var.%'caretSymbolShapeTransparent' state%)
-                setGuiPhysicalPos(g.Hwnd, left + x, offsetY + y, w, h)
-            }
+            showGui(g, "NA", 0, 1, var.%'caretSymbolShapeTransparent' state%)
+            setGuiPhysicalPos(g.Hwnd, left + x, offsetY + y, w, h)
         case 3:
             x := toPhysical(var.%"caretSymbolTextOffsetX" state%, scale)
             y := toPhysical(var.%"caretSymbolTextOffsetY" state%, scale)
             g := var.%"caretSymbolTextGui" state%
-            try {
-                showGui(g, "NA", 0, 1, var.%"caretSymbolTextTransparent" state%)
-                setGuiPhysicalPos(g.Hwnd, left + x, offsetY + y)
-            }
+            showGui(g, "NA", 0, 1, var.%"caretSymbolTextTransparent" state%)
+            setGuiPhysicalPos(g.Hwnd, left + x, offsetY + y)
     }
 
     lastCaretSymbol := state
@@ -169,9 +156,8 @@ reloadCaretSymbol() {
 hideCaretSymbol(all := 1) {
     for type in ["Picture", "Shape", "Text"] {
         for v in stateList {
-            if (all || currentState != v) {
+            if all || currentState != v
                 try var.%"caretSymbol" type "Gui" v%.Hide()
-            }
         }
     }
     global lastCaretSymbol := ""
@@ -195,7 +181,7 @@ showCursorSymbol(state, left, top) {
     s := isWhichScreen()
     scale := s.scale
 
-    if (s.num) {
+    if s.num {
         try {
             offset := symbolScreenOffset.cursor.%s.num%
             left += toPhysical(offset.x, scale)
@@ -207,7 +193,7 @@ showCursorSymbol(state, left, top) {
             x := toPhysical(var.%"cursorSymbolPictureOffsetX" state%, scale)
             y := toPhysical(var.%"cursorSymbolPictureOffsetY" state%, scale)
             g := var.%"cursorSymbolPictureGui" state%
-            showGui(g, "NA AutoSize", 0, 0)
+            showGui(g, "NA", 0, 0, "")
             setGuiPhysicalPos(g.Hwnd, left + x, top + y)
         case 2:
             x := toPhysical(var.%"cursorSymbolShapeOffsetX" state%, scale)
@@ -215,15 +201,13 @@ showCursorSymbol(state, left, top) {
             w := toPhysical(var.%"cursorSymbolShapeWidth" state%, scale)
             h := toPhysical(var.%"cursorSymbolShapeHeight" state%, scale)
             g := var.%"cursorSymbolShapeGui" state%
-            applyTransparency(g, var.%'cursorSymbolShapeTransparent' state%)
-            showGui(g, "NA", 0, 0)
+            showGui(g, "NA", 0, 0, var.%'cursorSymbolShapeTransparent' state%)
             setGuiPhysicalPos(g.Hwnd, left + x, top + y, w, h)
         case 3:
             x := toPhysical(var.%"cursorSymbolTextOffsetX" state%, scale)
             y := toPhysical(var.%"cursorSymbolTextOffsetY" state%, scale)
             g := var.%"cursorSymbolTextGui" state%
-            applyTransparency(g, var.%"cursorSymbolTextTransparent" state%)
-            showGui(g, "NA AutoSize", 0, 0)
+            showGui(g, "NA", 0, 0, var.%"cursorSymbolTextTransparent" state%)
             setGuiPhysicalPos(g.Hwnd, left + x, top + y)
     }
 
@@ -247,9 +231,8 @@ reloadCursorSymbol() {
 hideCursorSymbol(all := 1) {
     for type in ["Picture", "Shape", "Text"] {
         for v in stateList {
-            if (all || currentState != v) {
+            if all || currentState != v
                 try var.%"cursorSymbol" type "Gui" v%.Hide()
-            }
         }
     }
     global lastCursorSymbol := ""
@@ -271,7 +254,7 @@ e_symbol(*) {
         tab.UseTab(1)
         g.AddLink("Section", getDocsLink("tip/symbol-caret"))
 
-        if (info.i) {
+        if info.i {
             g.AddText(, isChinese ? line70 : line80)
             return g
         }
@@ -372,7 +355,7 @@ e_cursorSymbol(*) {
         tab.UseTab(1)
         g.AddLink("Section", getDocsLink("tip/symbol-cursor"))
 
-        if (info.i) {
+        if info.i {
             g.AddText(, isChinese ? line70 : line80)
             return g
         }
@@ -437,7 +420,7 @@ e_symbolConfig(prefix, *) {
                 tab.UseTab(1)
                 g.AddLink("Section", getDocsLink("tip/symbol-caret/picture"))
 
-                if (info.i) {
+                if info.i {
                     g.AddText(, isChinese ? line70 : line80)
                     return g
                 }
@@ -455,14 +438,14 @@ e_symbolConfig(prefix, *) {
 
                 page := 1
                 for i, state in stateList {
-                    if (i == 3 || i == 5) {
+                    if i == 3 || i == 5 {
                         page++
                         addBtn()
                         tab.UseTab(page)
                         g.AddLink("Section", getDocsLink("tip/symbol-caret/picture"))
                         gc.%prefix "PreviewSymbolPicture" page% := prefix == "caret" ? g.AddEdit("xs cGray r1 w" bw, i18n("symbol.preview")) : { Focus: (*) => "" }
                     }
-                    renderGroupBox(g, state, "xs", "h170 w" bw)
+                    renderGroupBox(g, state, "xs", "h" uicDDL.h * 1.5 " w" bw)
                     _ := prefix "SymbolPictureOffsetX"
                     renderEditLabel(g, _ state, "Limit5 " editOpt, _)
                     _ := prefix "SymbolPictureOffsetY"
@@ -472,7 +455,7 @@ e_symbolConfig(prefix, *) {
                     _ := prefix "SymbolPictureHeight"
                     renderEditLabel(g, _ state, "Number Limit3" editOpt, _, "yp")
 
-                    _ := g.AddDropDownList("xs+20 yp+60 r9 w" bw - 40, picList)
+                    _ := g.AddDropDownList("xs+20 yp+" uicDDL.yp " r9 w" bw - 40, picList)
                     key := prefix "SymbolPicturePath" state
                     _.key := key
                     _.page := page
@@ -500,8 +483,7 @@ e_symbolConfig(prefix, *) {
                 tab.UseTab(1)
                 g.AddLink("Section", getDocsLink("tip/symbol-caret/shape"))
 
-
-                if (info.i) {
+                if info.i {
                     g.AddText(, isChinese ? line60 : line70)
                     return g
                 }
@@ -526,10 +508,11 @@ e_symbolConfig(prefix, *) {
                 for i, state in stateList {
                     if (Mod(i - 1, 2) == 0) {
                         tab.UseTab(((i - 1) // 2) + 2)
-                        g.AddLink("Section", getDocsLink("tip/symbol-caret/shape"))
+                        opt := "Section"
+                    } else {
+                        opt := "xs"
                     }
-                    renderGroupBox(g, state, , "h170 w" bw)
-
+                    renderGroupBox(g, state, opt, "h" uicDDL.h * 1.5 " w" bw)
                     _ := prefix "SymbolShapeOffsetX"
                     renderEditLabel(g, _ state, "Limit5 " editOpt, _)
                     _ := prefix "SymbolShapeWidth"
@@ -555,7 +538,7 @@ e_symbolConfig(prefix, *) {
                 tab.UseTab(1)
                 g.AddLink("Section", getDocsLink("tip/symbol-caret/text"))
 
-                if (info.i) {
+                if info.i {
                     g.AddText(, line70)
                     return g
                 }
@@ -580,11 +563,11 @@ e_symbolConfig(prefix, *) {
                 for i, state in stateList {
                     if (Mod(i - 1, 2) == 0) {
                         tab.UseTab(((i - 1) // 2) + 2)
-                        g.AddLink("Section", getDocsLink("tip/symbol-caret/text"))
+                        opt := "Section"
+                    } else {
+                        opt := "xs"
                     }
-
-                    renderGroupBox(g, state, , "h280 w" bw)
-
+                    renderGroupBox(g, state, opt, "h" uicDDL.h * 2.5 " w" bw)
                     renderEditLabel(g, prefix "SymbolTextContent" state, editOpt, prefix "SymbolTextContent")
                     renderEditLabel(g, prefix "SymbolTextOffsetX" state, "Limit5 " editOpt, prefix "SymbolTextOffsetX", "yp")
                     renderColorPicker(g, prefix "SymbolTextColor" state, prefix "SymbolTextColor")
@@ -592,7 +575,7 @@ e_symbolConfig(prefix, *) {
                     renderEditLabel(g, prefix "SymbolTextOffsetY" state, "Limit5 " editOpt, prefix "SymbolTextOffsetY", "yp")
                     renderColorPicker(g, prefix "SymbolTextBgColor" state, prefix "SymbolTextBgColor")
 
-                    renderText(g, prefix "SymbolTextFont", "xs+20 yp+55", "")
+                    renderText(g, prefix "SymbolTextFont", "xs+20 yp+" uicDDL.yp, "")
                     renderDropDownList(g, prefix "SymbolTextFont" state, fontList, "yp", "w" bw / 1.2)
                     renderEditLabel(g, prefix "SymbolTextWeight" state, "Number Limit3" editOpt, prefix "SymbolTextWeight")
                     renderEditLabel(g, prefix "SymbolTextTransparent" state, "Number Limit3" editOpt, prefix "SymbolTextTransparent", "yp")
@@ -623,7 +606,7 @@ e_screenOffset(prefix, *) {
 
         offsetMap := Map()
         for o in StrSplit(readIni(prefix "SymbolScreenOffset", ""), "|") {
-            if (o == "")
+            if o == ""
                 continue
             p := StrSplit(o, "/")
             try offsetMap.Set(p[1], { x: p[2], y: p[3] })

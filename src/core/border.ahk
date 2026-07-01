@@ -5,7 +5,7 @@ e_border(*) {
     borderStyleGui(info) {
         g := createGuiOpt(i18n("border"))
 
-        if (info.i) {
+        if info.i {
             g.AddText(, isChinese ? line80 : line90)
             return g
         }
@@ -14,7 +14,7 @@ e_border(*) {
 
         ctrlList := []
 
-        tab := renderTab(g, [i18n("basicConfig"), i18n("stateStyle"), i18n("stateStyle") 2])
+        tab := renderTab(g, [i18n("basicConfig"), i18n("basicConfig") 2, i18n("stateStyle"), i18n("stateStyle") 2])
         loseFocusOnTab(tab)
         tab.UseTab(1)
         g.AddLink("Section", getDocsLink("tip/border"))
@@ -26,34 +26,17 @@ e_border(*) {
 
         _ := renderEditGroup(g, "borderHideDelay", "Number Limit5")
         ctrlList.Push(_.edit)
-        renderGroupBox(g, "borderReshowOnChange", , "h110 w" bw)
-        g.AddCheckbox("xs+20 yp+50 Disabled", i18n("borderReshowOnChange.state")).Value := 1
-        for v in ["Process", "Title", "Class"] {
-            _ := g.AddCheckbox("yp", i18n("borderReshowOnChange." StrLower(v)))
-            _.Value := var.%"borderReshowOn" v "Change"%
-            _.OnEvent("Click", e_change.Bind(v))
-            ctrlList.Push(_)
-        }
-        e_change(type, ctrl, *) {
-            key := "borderReshowOn" type "Change"
-            val := ctrl.Value
-            var.%key% := val
-            writeIni(key, val)
-        }
 
         _ := renderRadioGroup(g, "borderShowMode", [["blacklist", "blacklist"], ["whitelist", "whitelist"]])
         ctrlList.Push(_.radios*)
 
         _w := bw / 2 - g.MarginX / 4
-        for v in [
-            ["hide", "xs", "blacklistBtn"],
-            ["show", "yp", "whitelistBtn"],
-        ] {
-            _ := g.AddButton(v[2] " w" _w, i18n(v[3]))
+        for i, v in [["hide", "blacklistBtn"], ["show", "whitelistBtn"]] {
+            _ := g.AddButton((i == 1 ? "xs" : "yp") " w" _w, i18n(v[2]))
             _.OnEvent("Click",
                 createProcessMenuGui.Bind({
-                    title: i18n("border") " - " i18n(v[3]),
-                    tab: [i18n(v[3])],
+                    title: i18n("border") " - " i18n(v[2]),
+                    tab: [i18n(v[2])],
                     trigger: [v[1]],
                     link: getDocsLink("tip/border/list-mechanism"),
                     section: "Window.Border.Rule",
@@ -64,16 +47,62 @@ e_border(*) {
             ctrlList.Push(_)
         }
 
+        tab.UseTab(2)
+        g.AddLink("Section", getDocsLink("tip/border"))
+
+        renderGroupBox(g, "borderReshowOnChange", , "h" uicText.h " w" bw)
+        g.AddCheckbox("xs+20 yp+" uicText.yp " Disabled", i18n("borderReshowOnChange.state")).Value := 1
+        for v in ["Process", "Title", "Class"] {
+            _ := g.AddCheckbox("yp", i18n("borderReshowOnChange." StrLower(v)))
+            key := "borderReshowOn" v "Change"
+            _.Value := var.%key%
+            _.OnEvent("Click", e_change.Bind(key))
+            ctrlList.Push(_)
+        }
+        e_change(key, ctrl, *) {
+            val := ctrl.Value
+            var.%key% := val
+            writeIni(key, val)
+        }
+
+        renderGroupBox(g, "showOnWindowState", , "h" uicText.h " w" bw)
+        for i, v in ["Normal", "Maximized", "Fullscreen"] {
+            _ := g.AddCheckbox(i == 1 ? "xs+20 yp+" uicText.yp : "yp", i18n("showOnWindowState." StrLower(v)))
+            key := "borderShowOn" v
+            _.Value := var.%key%
+            _.OnEvent("Click", e_change.Bind(key))
+            ctrlList.Push(_)
+        }
+
+        renderGroupBox(g, "borderShowOnMaximized", , "h" uicText.h " w" bw)
+        for i, v in ["Top", "Bottom", "Left", "Right"] {
+            _ := g.AddCheckbox(i == 1 ? "xs+20 yp+" uicText.yp : "yp", i18n("position." v))
+            key := "borderShowOnMaximized" v
+            _.Value := var.%key%
+            _.OnEvent("Click", e_change.Bind(key))
+            ctrlList.Push(_)
+        }
+        renderGroupBox(g, "borderShowOnFullscreen", , "h" uicText.h " w" bw)
+        for i, v in ["Top", "Bottom", "Left", "Right"] {
+            _ := g.AddCheckbox(i == 1 ? "xs+20 yp+" uicText.yp : "yp", i18n("position." v))
+            key := "borderShowOnFullscreen" v
+            _.Value := var.%key%
+            _.OnEvent("Click", e_change.Bind(key))
+            ctrlList.Push(_)
+        }
+
         for i, v in ["Pinned", stateList*] {
             if (Mod(i - 1, 4) == 0) {
-                tab.UseTab(((i - 1) // 3) + 2)
-                g.AddLink("Section", getDocsLink("tip/border"))
+                tab.UseTab(((i - 1) // 3) + 3)
+                opt := "Section"
+                g.AddText("cGray", i18n("borderWidth.tip"))
+            } else {
+                opt := "xs"
             }
-
-            renderGroupBox(g, v, , "h110 w" bw)
-
-            ; renderEditLabel(g, "borderWidth" v, "w" bw / 3, "borderWidth")
-            _ := renderColorPicker(g, "borderColor" v, "borderColor", "xs+20 yp+50")
+            renderGroupBox(g, v, opt, "h" uicText.h " w" bw)
+            _ := renderEditLabel(g, "borderWidth" v, "yp Number Limit2 w" bw / 6, "borderWidth")
+            ctrlList.Push(_.edit)
+            _ := renderColorPicker(g, "borderColor" v, "borderColor", "yp")
             ctrlList.Push(_.picker)
         }
 
@@ -94,11 +123,41 @@ showBorder(finalColor, finalWidth, hwnd) {
     }
     var._lastBorderHwnd := hwnd
 
-    if (WinGetMinMax(hwnd) == 1) {
-        hideBorder()
-        var.maximizedBorders := []
+    scr := isWhichScreen(hwnd)
 
-        scr := isWhichScreen(hwnd)
+    if isFullscreen(hwnd) {
+        hideBorder()
+
+        SL := scr.left
+        ST := scr.top
+        SR := scr.right
+        SB := scr.bottom
+
+        t := finalWidth
+        W := SR - SL
+        H := SB - ST
+
+        rawConfigs := [{ side: "Top", x: SL, y: ST, w: W, h: t }, ;
+            { side: "Bottom", x: SL, y: SB - t, w: W, h: t }, ;
+            { side: "Left", x: SL, y: ST + t, w: t, h: H - (2 * t) }, ;
+            { side: "Right", x: SR - t, y: ST + t, w: t, h: H - (2 * t) } ;
+        ]
+
+        borderConfigs := []
+        for cfg in rawConfigs
+            var.%"borderShowOnFullscreen" cfg.side% ? borderConfigs.Push(cfg) : ""
+
+        for cfg in borderConfigs {
+            box := Gui("-Caption AlwaysOnTop ToolWindow E0x20 -DPIScale")
+            box.BackColor := finalColor
+            box.Show("W1 H1 NoActivate")
+            DllCall("SetWindowPos", "Ptr", box.Hwnd, "Ptr", -1, "Int", cfg.x, "Int", cfg.y, "Int", cfg.w, "Int", cfg.h, "UInt", 0x10 | 0x40)
+            var.maximizedBorders.Push(box)
+        }
+    }
+    else if WinGetMinMax(hwnd) == 1 {
+        hideBorder()
+
         if !scr
             return
 
@@ -111,27 +170,20 @@ showBorder(finalColor, finalWidth, hwnd) {
         W := WR - WL
         H := WB - WT
 
-        borderConfigs := [{ x: WL, y: WT, w: W, h: t }, ;
-            { x: WL, y: WB - t, w: W, h: t }, ;
-            { x: WL, y: WT + t, w: t, h: H - (2 * t) }, ;
-            { x: WR - t, y: WT + t, w: t, h: H - (2 * t) }  ;
+        rawConfigs := [{ side: "Top", x: WL, y: WT, w: W, h: t }, ;
+            { side: "Bottom", x: WL, y: WB - t, w: W, h: t }, ;
+            { side: "Left", x: WL, y: WT + t, w: t, h: H - (2 * t) }, ;
+            { side: "Right", x: WR - t, y: WT + t, w: t, h: H - (2 * t) } ;
         ]
+        borderConfigs := []
+        for cfg in rawConfigs
+            var.%"borderShowOnMaximized" cfg.side% ? borderConfigs.Push(cfg) : ""
 
         for cfg in borderConfigs {
             box := Gui("-Caption AlwaysOnTop ToolWindow E0x20 -DPIScale")
             box.BackColor := finalColor
             box.Show("W1 H1 NoActivate")
-            SWP_NOACTIVATE := 0x10
-            SWP_SHOWWINDOW := 0x40
-            DllCall("SetWindowPos",
-                "Ptr", box.Hwnd,
-                "Ptr", -1,
-                "Int", cfg.x,
-                "Int", cfg.y,
-                "Int", cfg.w,
-                "Int", cfg.h,
-                "UInt", SWP_NOACTIVATE | SWP_SHOWWINDOW)
-
+            DllCall("SetWindowPos", "Ptr", box.Hwnd, "Ptr", -1, "Int", cfg.x, "Int", cfg.y, "Int", cfg.w, "Int", cfg.h, "UInt", 0x10 | 0x40)
             var.maximizedBorders.Push(box)
         }
     }
@@ -147,7 +199,7 @@ hideBorder(hwnd := 0) {
     if var.HasProp("maximizedBorders") && var.maximizedBorders.Length > 0 {
         for box in var.maximizedBorders
             try box.Hide()
-        while (var.maximizedBorders.Length > 0) {
+        while var.maximizedBorders.Length > 0 {
             box := var.maximizedBorders.Pop()
             try box.Destroy()
         }

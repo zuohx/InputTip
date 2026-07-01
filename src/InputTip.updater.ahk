@@ -5,9 +5,9 @@
 #Include core\manifest.ahk
 
 ;@Ahk2Exe-SetMainIcon temp\icon\default-app.ico
-;@AHK2Exe-SetName InputTip.updater
+;@Ahk2Exe-SetName InputTip.updater
 ;@Ahk2Exe-SetOrigFilename InputTip.updater
-;@AHK2Exe-SetDescription InputTip.updater
+;@Ahk2Exe-SetDescription InputTip.updater
 
 #Include core\config.ahk
 #Include core\gui.ahk
@@ -25,11 +25,11 @@ if A_IsCompiled {
 }
 
 keyCount := 0
-precessId := ""
+precessIds := []
 updater := ""
 
 try keyCount := A_Args[1]
-try precessId := A_Args[2]
+try precessIds := StrSplit(A_Args[2], ",")
 try updater := A_Args[3]
 
 updater == "getRepoCode" ? getRepoCode() : checkUpdate()
@@ -52,7 +52,7 @@ hasNewVersion(new, old) {
 checkVersion(currentVersion, callback) {
     check(1)
     check(index) {
-        if (index > baseUrl.Length)
+        if index > baseUrl.Length
             return
         url := baseUrl[index] "/src/versions.txt"
         try {
@@ -63,10 +63,10 @@ checkVersion(currentVersion, callback) {
             Ready() {
                 if req.readyState != 4
                     return
-                if (req.status == 200) {
+                if req.status == 200 {
                     if RegExMatch(req.responseText, "i)" (A_IsCompiled ? "exe" : "zip") "\s*=\s*v?([\d.]+)", &m) {
                         newVersion := Trim(m[1])
-                        if (newVersion ~= "^[\d\.]+$") {
+                        if newVersion ~= "^[\d\.]+$" {
                             if hasNewVersion(newVersion, currentVersion)
                                 try callback(newVersion, url)
                             return
@@ -80,12 +80,11 @@ checkVersion(currentVersion, callback) {
 }
 
 checkUpdate() {
-    if (A_IsCompiled) {
+    if A_IsCompiled {
         checkVersion(currentVersion, updateConfirm)
         updateConfirm(newVersion, url) {
-            if (gc.updateGui || !hasNewVersion(newVersion, currentVersion)) {
+            if gc.updateGui || !hasNewVersion(newVersion, currentVersion)
                 return
-            }
 
             /**
              * 下载并替换新版本
@@ -101,7 +100,7 @@ checkUpdate() {
 
                 downloadingGui(info, *) {
                     g := createGuiOpt(i18n("updateCheck"), , "AlwaysOnTop Disabled")
-                    if (info.i) {
+                    if info.i {
                         g.AddText(, line60)
                         return g
                     }
@@ -123,10 +122,10 @@ checkUpdate() {
                     }
                 }
                 dlGui.Destroy()
-                if (done) {
+                if done {
                     try {
-                        ProcessClose(precessId)
-                        ProcessWaitClose(precessId, 10)
+                        for id in precessIds
+                            ProcessClose(id), ProcessWaitClose(id, 10)
                         FileMove(out, updater, 1)
                         try FileDelete(logFile)
                         Run('"' updater '" ' keyCount, , "Hide")
@@ -143,7 +142,7 @@ checkUpdate() {
                 updateGui(info) {
                     g := createGuiOpt(i18n("updateVersion"))
 
-                    if (info.i) {
+                    if info.i {
                         g.AddText(, line80)
                         return g
                     }
@@ -152,19 +151,9 @@ checkUpdate() {
 
                     showLog(g)
 
-                    g.AddButton("xs w" w, i18n("update.confirm")).OnEvent("Click", e_yes)
-                    e_yes(*) {
-                        fn_close()
-                        if (!updateNewVersion()) {
-                            showGui(createErrorTipGui(i18n("update.error", 1)))
-                        }
-                    }
+                    g.AddButton("xs w" w, i18n("update.confirm")).OnEvent("Click", (*) => (g.Destroy(), updateNewVersion() ? "" : showGui(createErrorTipGui(i18n("update.error", 1)))))
                     g.AddButton("xs w" w, i18n("update.cancel")).OnEvent("Click", (*) => ExitApp())
-                    g.OnEvent("Close", (*) => (fn_close(), ExitApp()))
-                    fn_close(*) {
-                        g.Destroy()
-                        gc.updateGui := ""
-                    }
+                    g.OnEvent("Close", (*) => ExitApp())
                     gc.updateGui := g
                     return g
                 }
@@ -173,15 +162,15 @@ checkUpdate() {
     } else {
         checkVersion(currentVersion, updatePrompt)
         updatePrompt(newVersion, url) {
-            if (gc.updateGui || !hasNewVersion(newVersion, currentVersion)) {
+            if gc.updateGui || !hasNewVersion(newVersion, currentVersion)
                 return
-            }
+
             try {
                 Download(StrReplace(url, "/versions.txt", "/CHANGELOG.md"), logFile)
                 showGui(createUniqueGui(fn))
                 fn(info) {
                     g := createGuiOpt(i18n("updateVersion"), , "AlwaysOnTop")
-                    if (info.i) {
+                    if info.i {
                         g.AddText(, line80)
                         return g
                     }
@@ -190,14 +179,9 @@ checkUpdate() {
 
                     showLog(g)
 
-                    g.AddButton("xs w" w, i18n("update.confirm")).OnEvent("Click", (*) => (fn_close(), getRepoCode()))
+                    g.AddButton("xs w" w, i18n("update.confirm")).OnEvent("Click", (*) => (g.Destroy(), getRepoCode()))
                     g.AddButton("xs w" w, i18n("update.cancel")).OnEvent("Click", (*) => ExitApp())
-                    g.OnEvent("Close", (*) => (fn_close(), ExitApp()))
-                    g.OnEvent("Close", fn_close)
-                    fn_close(*) {
-                        g.Destroy()
-                        gc.updateGui := ""
-                    }
+                    g.OnEvent("Close", (*) => ExitApp())
                     gc.updateGui := g
                     return g
                 }
@@ -216,34 +200,49 @@ getRepoCode() {
         try {
             Download(u "src/files.ini", out)
             try {
-                if (InStr(FileOpen(out, "r").ReadLine(), "InputTip")) {
+                f := FileOpen(out, "r")
+                if InStr(f.ReadLine(), "InputTip") {
+                    f.Close()
                     downloadIni := 1
                     break
                 }
+                f.Close()
             }
         }
     }
-    if (downloadIni) {
-        done := showDownloadProcessGui(i18n("update.downloading"), StrSplit(IniRead(out, "files"), "`n"), "updateVersion")
-        if (done) {
+    if downloadIni {
+        fileList := StrSplit(IniRead(out, "files"), "`n")
+        if runtimeVersion != FileGetVersion(runtime)
+            fileList.Push("src/AutoHotkey/AutoHotkey64.exe=AutoHotkey/AutoHotkey64.runtime.exe")
+        done := showDownloadProcessGui(i18n("update.downloading"), fileList, "updateVersion")
+        if done {
             try FileDelete(logFile)
-            Run('"' A_AhkPath '" "' A_ScriptDir '\InputTip.ahk" ' keyCount)
+            for id in precessIds
+                ProcessClose(id), ProcessWaitClose(id, 10)
+            newRuntime := A_ScriptDir "\AutoHotkey\AutoHotkey64.runtime.exe"
+            try {
+                if FileExist(newRuntime) && FileGetVersion(newRuntime) == runtimeVersion
+                    Sleep(50), FileMove(newRuntime, runtime, 1)
+            } catch {
+                try FileDelete(newRuntime)
+            }
+            Sleep(50)
+            Run('"' runtime '" "' A_ScriptDir '\InputTip.ahk" ' keyCount)
         }
     } else {
         done := 0
     }
-    if (!done) {
+    if !done
         showGui(createErrorTipGui(i18n("update.error", 1)))
-    }
 }
 
 showLog(g) {
-    g.SetFont("s14")
+    g.SetFont("s" Max(var.menuFontSize - 2, 12))
     try {
         logContent := FileRead(logFile, "UTF-8")
         g.AddEdit("ReadOnly cGray VScroll r11 w" g.w, SubStr(logContent, InStr(logContent, "#")))
     } catch {
         g.AddText("cGray", i18n("update.logFailed"))
     }
-    g.SetFont("s16")
+    g.SetFont("s" var.menuFontSize)
 }
